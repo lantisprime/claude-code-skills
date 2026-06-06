@@ -16,6 +16,7 @@ Skills are markdown files that act as reusable prompts for Claude Code. When you
 | [OWASP Audit](#owasp-audit) | `/owasp-audit` | Run a comprehensive OWASP Top 10 security audit |
 | [Harden Express](#harden-express) | `/harden-express` | Apply security best practices to an existing Express app |
 | [Generate TTS](#generate-tts) | `/generate-tts` | Batch-generate text-to-speech audio using Edge TTS |
+| [Optimize Memory Docs](#optimize-memory-docs) | `/optimize-memory-docs` | Compact CLAUDE.md and memory index files without losing information |
 
 ## Installation
 
@@ -164,6 +165,24 @@ List all voices: `edge-tts --list-voices`
 - ~10-15KB per short phrase
 - Rate parameter must use `=` format: `--rate=-10%`
 - Prerequisites: Python 3 + `pip3 install edge-tts`
+
+---
+
+### Optimize Memory Docs
+
+Compacts a project's `CLAUDE.md` and any always-loaded memory/context index file so they stay small without losing information — detail moves to on-demand reference files, the index keeps one-line pointers.
+
+```
+/optimize-memory-docs
+```
+
+**What it does:**
+1. Measures each file against its size limit
+2. Classifies status/workplan entries as current vs historical
+3. Moves historical detail to a dated reference file (move, never delete)
+4. Collapses the status section and enforces one-line index entries
+5. Preserves load-bearing trigger tables and always-on rules
+6. Re-measures and verifies every pointer resolves
 
 ## Patterns and conventions
 
