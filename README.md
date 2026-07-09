@@ -17,6 +17,7 @@ Skills are markdown files that act as reusable prompts for Claude Code. When you
 | [Harden Express](#harden-express) | `/harden-express` | Apply security best practices to an existing Express app |
 | [Generate TTS](#generate-tts) | `/generate-tts` | Batch-generate text-to-speech audio using Edge TTS |
 | [Optimize Memory Docs](#optimize-memory-docs) | `/optimize-memory-docs` | Compact CLAUDE.md and memory index files without losing information |
+| [Optimize CLAUDE.mds](#optimize-claudemds) | `/optimize-claude-mds` | Audit CLAUDE.md and rule files for conflicts, duplicates, and token waste |
 
 ## Installation
 
@@ -183,6 +184,25 @@ Compacts a project's `CLAUDE.md` and any always-loaded memory/context index file
 4. Collapses the status section and enforces one-line index entries
 5. Preserves load-bearing trigger tables and always-on rules
 6. Re-measures and verifies every pointer resolves
+
+Pairs with `/optimize-claude-mds`: resolve rule conflicts there first, then compact here.
+
+---
+
+### Optimize CLAUDE.mds
+
+Audits instruction docs — global/project `CLAUDE.md`, memory indexes, accumulated feedback/correction rule files — for contradicting rules and token waste. Conflicts are resolved before anything is compressed.
+
+```
+/optimize-claude-mds
+```
+
+**What it does:**
+1. Inventories docs and weighs them by loading cost (always-loaded first)
+2. Detects five conflict classes: rule-vs-rule, rule-vs-mode (interactive rules that break autonomous runs), rule-vs-harness (restating built-ins), duplicates, stale references
+3. Reports each finding with quoted lines from both locations and which rule currently wins
+4. Token-optimizes only after conflicts are resolved — never compresses a contradiction
+5. Waits for approval on user-owned files; encodes conflict resolutions with scope carve-outs so both corrections survive
 
 ## Patterns and conventions
 
