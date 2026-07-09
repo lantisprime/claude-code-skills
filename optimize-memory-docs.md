@@ -13,16 +13,17 @@ Scope: size compaction only. For **conflict detection** (contradicting rules, fe
 
 ## Instructions
 
-1. **Measure.** Run `wc -c` on `CLAUDE.md` and the memory index. Note the gap to any stated size limit; target well under it for headroom.
+1. **Measure.** Run `wc -c` on `CLAUDE.md`, the memory index, AND any always-loaded rule/feedback files (files a session-start hook loads every session count against the recurring budget exactly like the index; on-demand files don't). Note the gap to any stated size limit; target well under it for headroom.
 2. **Classify each status/workplan entry as CURRENT or HISTORICAL.**
    - CURRENT = the active pointer + the single most recent shipped item.
    - HISTORICAL = anything describing merged / closed / completed work. Stale tell-tales: "MERGED", "DEPLOYED", "IN PROGRESS", "OPEN", "NEXT: approve…" for work that has since landed.
 3. **Move historical detail to a dated reference file** (e.g. `<index>_history.md`) **verbatim** — move, never delete. Preserve every commit hash, ticket id, and metric. Leave a one-line pointer in the index.
 4. **Collapse the status section** to three lines: Active (pointer) · Last shipped (one line) · History (pointer to the reference file).
 5. **Enforce one-line entries (≤ ~200 chars).** Use `**[Title](file.md)** (date) — one-line gist.` Detail stays in the linked file. Drop cross-link tails and empirical anecdotes from the index.
-6. **Durable pointers over pinned ids.** When an index entry references a record that gets revised (an episode, a doc version, a ticket), point at a stable handle (a tag or search query) rather than a version-pinned id — revisions mint new ids and strand the pointer.
-7. **Preserve load-bearing content** — never drop trigger/index tables, the "when to load" conditions, always-on rules, or safety notes. Trim only the trailing gist of an entry, never its trigger condition.
-8. **Re-measure and verify.** Confirm the index is under its limit, every preserved section survived, and every `[text](file.md)` pointer resolves to a real file.
+6. **Compact always-loaded rule/feedback files** the same way as the index: keep the rule statement, its trigger condition, and the rationale; move incident narratives to a dated reference file with a pointer. Never weaken the rule itself while shrinking it.
+7. **Durable pointers over pinned ids.** When an index entry references a record that gets revised (an episode, a doc version, a ticket), point at a stable handle (a tag or search query) rather than a version-pinned id — revisions mint new ids and strand the pointer.
+8. **Preserve load-bearing content** — never drop trigger/index tables, the "when to load" conditions, always-on rules, or safety notes. Trim only the trailing gist of an entry, never its trigger condition.
+9. **Re-measure and verify.** Confirm the index is under its limit, every preserved section survived, and every `[text](file.md)` pointer resolves to a real file.
 
 ## Safety
 

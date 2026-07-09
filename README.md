@@ -199,7 +199,7 @@ Audits instruction docs — global/project `CLAUDE.md`, memory indexes, accumula
 
 **What it does:**
 1. Inventories docs and weighs them by loading cost (always-loaded first)
-2. Detects five conflict classes: rule-vs-rule, rule-vs-mode (interactive rules that break autonomous runs), rule-vs-harness (restating built-ins), duplicates, stale references
+2. Detects six conflict classes: rule-vs-rule, rule-vs-mode (interactive rules that break autonomous runs), rule-vs-harness (restating built-ins), duplicates, stale references, fragmented same-topic rules (consolidates them)
 3. Reports each finding with quoted lines from both locations and which rule currently wins
 4. Token-optimizes only after conflicts are resolved — never compresses a contradiction
 5. Waits for approval on user-owned files; encodes conflict resolutions with scope carve-outs so both corrections survive

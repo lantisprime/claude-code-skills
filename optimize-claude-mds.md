@@ -25,6 +25,7 @@ Read the always-loaded set fully; cluster on-demand rule files by topic (grep ti
 - **RULE-VS-HARNESS** — lines restating what the tool's system prompt already enforces (match code style, concise output, …) — pure token cost; cut, noting what each was redundant with.
 - **DUPLICATE** — the same rule in two places with drifted wording or anchors. Keep one canonical statement where it's always loaded; replace the others with pointers.
 - **STALE** — references to files, flags, scripts, ids, or limits that no longer exist or were superseded. Verify each before keeping (`ls`/`grep` the target); prefer durable handles (tags, search queries) over version-pinned ids.
+- **FRAGMENTED** — several same-topic rule files that don't conflict but are facets of one rule (three files about the same shell discipline, two about the same review flow). Consolidate into one canonical file carrying every facet + all trigger conditions; retire the others to pointers. Fewer, stronger rules beat many overlapping ones — for tokens and for recall.
 
 For every finding record: class, the quoted lines from **both** locations (file:line), and which rule currently wins in practice.
 
