@@ -2,6 +2,8 @@
 
 Compact a project's `CLAUDE.md` and any always-loaded memory/context index (e.g. a `MEMORY.md`) so they stay small without losing information. These files are loaded into **every** session, so every byte is recurring context cost — detail belongs in on-demand reference files, not in the always-loaded index.
 
+Scope: size compaction only. For **conflict detection** (contradicting rules, feedback files that fight each other, harness-redundant lines) and deep CLAUDE.md optimization, use `/optimize-claude-mds` — resolve conflicts there **before** compacting here; never compress a contradiction.
+
 ## When to use
 
 - A session-start hook warns that the memory index exceeds its size limit.
@@ -18,8 +20,9 @@ Compact a project's `CLAUDE.md` and any always-loaded memory/context index (e.g.
 3. **Move historical detail to a dated reference file** (e.g. `<index>_history.md`) **verbatim** — move, never delete. Preserve every commit hash, ticket id, and metric. Leave a one-line pointer in the index.
 4. **Collapse the status section** to three lines: Active (pointer) · Last shipped (one line) · History (pointer to the reference file).
 5. **Enforce one-line entries (≤ ~200 chars).** Use `**[Title](file.md)** (date) — one-line gist.` Detail stays in the linked file. Drop cross-link tails and empirical anecdotes from the index.
-6. **Preserve load-bearing content** — never drop trigger/index tables, the "when to load" conditions, always-on rules, or safety notes. Trim only the trailing gist of an entry, never its trigger condition.
-7. **Re-measure and verify.** Confirm the index is under its limit, every preserved section survived, and every `[text](file.md)` pointer resolves to a real file.
+6. **Durable pointers over pinned ids.** When an index entry references a record that gets revised (an episode, a doc version, a ticket), point at a stable handle (a tag or search query) rather than a version-pinned id — revisions mint new ids and strand the pointer.
+7. **Preserve load-bearing content** — never drop trigger/index tables, the "when to load" conditions, always-on rules, or safety notes. Trim only the trailing gist of an entry, never its trigger condition.
+8. **Re-measure and verify.** Confirm the index is under its limit, every preserved section survived, and every `[text](file.md)` pointer resolves to a real file.
 
 ## Safety
 
