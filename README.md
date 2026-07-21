@@ -19,6 +19,7 @@ Skills are markdown files that act as reusable prompts for Claude Code. When you
 | [Optimize Memory Docs](#optimize-memory-docs) | `/optimize-memory-docs` | Compact CLAUDE.md and memory index files without losing information |
 | [Optimize CLAUDE.mds](#optimize-claudemds) | `/optimize-claude-mds` | Audit CLAUDE.md and rule files for conflicts, duplicates, and token waste |
 | [Herdr Driver](#herdr-driver) | `/herdr-driver` | Drive terminals and CLI agents via a private, throwaway Herdr session |
+| [tmux Driver](#tmux-driver) | `/tmux-driver` | Fallback driver: steer CLI agent seats over private per-run tmux sockets |
 
 ## Installation
 
@@ -223,6 +224,23 @@ Drives interactive terminals and CLI coding agents (codex, pi, REPLs) through th
 5. Stops and deletes the private session on the way out, even on failure
 
 Born from a shared-driver-socket incident: on a shared socket, one session's `start`/`server stop` kills a sibling session's server and its live seats. Private per-run sockets make that impossible.
+
+---
+
+### tmux Driver
+
+The fallback for Herdr Driver when `herdr` isn't available: drives CLI agent seats (pi, codex, REPLs) through control-file driver scripts over **private per-run tmux sockets**, with the same supervision doctrine — approval-dialog scanning (look first, approve in a separate command, read-only auto-approves only), steering, and mandatory teardown.
+
+```
+/tmux-driver
+```
+
+**What it does:**
+1. Claims a unique socket name + scratchpad control dir per run — after verifying via `tmux -L <name> ls` that no sibling session owns it
+2. Drives seats through the control-file protocol (`start|ask|send|key|poll|wait|read|stop`)
+3. Synchronizes on driver poll/wait actions, never whole-pane scrollback greps
+4. Supervises interactively: reads dialogs before answering, auto-approves read-only operations only, steers drifting seats
+5. Kills only its own private socket and removes its control dir on the way out
 
 ## Patterns and conventions
 
