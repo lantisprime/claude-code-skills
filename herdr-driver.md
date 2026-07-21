@@ -2,7 +2,7 @@
 
 Drive interactive terminals and CLI coding agents (codex, pi, claude, plain shells) through the [Herdr](https://herdr.dev) socket API, using a **private, throwaway Herdr session with its own socket** for every driver run. Never drive through the user's default session.
 
-> `/tmux-driver` is the **preferred** seat driver; use this one when tmux or the drive scripts are unavailable, or when the user asks for Herdr.
+> This is the **preferred** seat driver: native agent-status waits and new-output matches make supervision event-driven instead of poll-based. `/tmux-driver` is the fallback when `herdr` is unavailable.
 
 **Why private sockets (lesson from cmux/tmux driver sockets):** shared driver sockets are cross-session shared state. One session running `start` or `server stop` on a shared socket kills a sibling session's server and wipes its live seats. A per-run named session gives you an isolated socket path (`~/.config/herdr/sessions/<name>/herdr.sock`), so nothing you start, stop, or break can touch the user's interactive workspace or another driver's seats.
 
@@ -12,7 +12,7 @@ Verified against Herdr 0.7.4 (protocol 16).
 
 - You need to run and steer an interactive CLI agent (pi, codex, a REPL, an ssh session) that can't be driven by plain `Bash` because it needs a real TTY, keystrokes, or mid-run interaction.
 - You need to babysit a seat: wait for it to go idle/blocked, read its screen, answer its prompts.
-- `/tmux-driver` (the preferred driver) can't run — no tmux, no drive scripts — or the user asked for Herdr. One advantage this transport keeps: Herdr reports agent status natively (`idle|working|blocked|done`), avoiding scrollback-grep false positives.
+- You would otherwise reach for `tmux -L <socket>` — use this instead. Herdr reports agent status natively (`idle|working|blocked|done`) and offers blocking waits, so supervision is event-driven: `--status blocked` acts as an interrupt for approval dialogs, and no scrollback-grep false positives are possible. Fall back to `/tmux-driver` only when `herdr` is unavailable.
 
 Do **not** use the driver to manipulate panes in the user's `default` Herdr session unless the user explicitly asks for that; then target those panes read-mostly and never `server stop` them.
 

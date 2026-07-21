@@ -1,13 +1,13 @@
 # tmux driver — drive CLI agent seats over private tmux sockets
 
-Drive interactive CLI coding agents (pi, codex, REPLs) through per-run **private tmux sockets** and control-file driver scripts. This is the **preferred** seat driver; `/herdr-driver` is the alternative transport when tmux or the drive scripts don't fit. Core doctrine either way: nothing you `start`, `kill-server`, or break may share a socket with another live session.
+Drive interactive CLI coding agents (pi, codex, REPLs) through per-run **private tmux sockets** and control-file driver scripts. This is the **fallback** for `/herdr-driver` (preferred — its native agent-status waits make supervision event-driven rather than poll-based); use this when `herdr` is unavailable. Core doctrine either way: nothing you `start`, `kill-server`, or break may share a socket with another live session.
 
 **Why private sockets:** tmux sockets and control dirs are cross-session shared mutable state. A driver whose `start` runs `kill-server` on a fixed socket will destroy a sibling session's live seat (this happened; the wreckage was real). Every run therefore gets its own socket name and its own control dir, and existing sockets are treated as owned by someone else.
 
 ## When to use
 
-- Default choice whenever you need a TTY-driven seat: pi/codex implementer or reviewer, an interactive REPL, anything plain `Bash` can't steer mid-run. The drive scripts (`~/.claude/pi-drive.sh`, `~/.claude/codex-drive.sh`) are already wired for this.
-- Reach for `/herdr-driver` instead only when tmux or the drive scripts are unavailable, or the user asks for Herdr.
+- `/herdr-driver` is preferred; reach for this when `herdr` is unavailable, or the seat is already wired to the tmux drive scripts (`~/.claude/pi-drive.sh`, `~/.claude/codex-drive.sh`) mid-run.
+- You need a TTY-driven seat: pi/codex implementer or reviewer, an interactive REPL, anything plain `Bash` can't steer mid-run.
 
 ## Instructions
 

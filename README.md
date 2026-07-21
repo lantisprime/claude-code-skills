@@ -18,8 +18,8 @@ Skills are markdown files that act as reusable prompts for Claude Code. When you
 | [Generate TTS](#generate-tts) | `/generate-tts` | Batch-generate text-to-speech audio using Edge TTS |
 | [Optimize Memory Docs](#optimize-memory-docs) | `/optimize-memory-docs` | Compact CLAUDE.md and memory index files without losing information |
 | [Optimize CLAUDE.mds](#optimize-claudemds) | `/optimize-claude-mds` | Audit CLAUDE.md and rule files for conflicts, duplicates, and token waste |
-| [tmux Driver](#tmux-driver) | `/tmux-driver` | Preferred driver: steer CLI agent seats over private per-run tmux sockets |
-| [Herdr Driver](#herdr-driver) | `/herdr-driver` | Alternative driver: terminals and CLI agents via a private, throwaway Herdr session |
+| [Herdr Driver](#herdr-driver) | `/herdr-driver` | Preferred driver: terminals and CLI agents via a private, throwaway Herdr session |
+| [tmux Driver](#tmux-driver) | `/tmux-driver` | Fallback driver: steer CLI agent seats over private per-run tmux sockets |
 
 ## Installation
 
@@ -210,7 +210,7 @@ Audits instruction docs — global/project `CLAUDE.md`, memory indexes, accumula
 
 ### Herdr Driver
 
-Alternative to tmux Driver (which is preferred): drives interactive terminals and CLI coding agents (codex, pi, REPLs) through the [Herdr](https://herdr.dev) socket API — always in a private, per-run Herdr session with its own socket, so nothing it starts or stops can touch your interactive workspace.
+The preferred seat driver: drives interactive terminals and CLI coding agents (codex, pi, REPLs) through the [Herdr](https://herdr.dev) socket API — always in a private, per-run Herdr session with its own socket, so nothing it starts or stops can touch your interactive workspace. Native agent-status waits make supervision event-driven (a blocked seat is the wake-up signal) instead of poll-based.
 
 ```
 /herdr-driver
@@ -229,7 +229,7 @@ Born from a shared-driver-socket incident: on a shared socket, one session's `st
 
 ### tmux Driver
 
-The preferred seat driver: drives CLI agent seats (pi, codex, REPLs) through control-file driver scripts over **private per-run tmux sockets**, with an interactive supervision doctrine — approval-dialog scanning (look first, approve in a separate command, read-only auto-approves only), steering, and mandatory teardown. `/herdr-driver` is the alternative when tmux or the drive scripts aren't available.
+The fallback for Herdr Driver when `herdr` isn't available: drives CLI agent seats (pi, codex, REPLs) through control-file driver scripts over **private per-run tmux sockets**, with the same supervision doctrine — approval-dialog scanning (look first, approve in a separate command, read-only auto-approves only), steering, and mandatory teardown.
 
 ```
 /tmux-driver
