@@ -18,6 +18,7 @@ Skills are markdown files that act as reusable prompts for Claude Code. When you
 | [Generate TTS](#generate-tts) | `/generate-tts` | Batch-generate text-to-speech audio using Edge TTS |
 | [Optimize Memory Docs](#optimize-memory-docs) | `/optimize-memory-docs` | Compact CLAUDE.md and memory index files without losing information |
 | [Optimize CLAUDE.mds](#optimize-claudemds) | `/optimize-claude-mds` | Audit CLAUDE.md and rule files for conflicts, duplicates, and token waste |
+| [Herdr Driver](#herdr-driver) | `/herdr-driver` | Drive terminals and CLI agents via a private, throwaway Herdr session |
 
 ## Installation
 
@@ -203,6 +204,25 @@ Audits instruction docs — global/project `CLAUDE.md`, memory indexes, accumula
 3. Reports each finding with quoted lines from both locations and which rule currently wins
 4. Token-optimizes only after conflicts are resolved — never compresses a contradiction
 5. Waits for approval on user-owned files; encodes conflict resolutions with scope carve-outs so both corrections survive
+
+---
+
+### Herdr Driver
+
+Drives interactive terminals and CLI coding agents (codex, pi, REPLs) through the [Herdr](https://herdr.dev) socket API — always in a private, per-run Herdr session with its own socket, so nothing it starts or stops can touch your interactive workspace.
+
+```
+/herdr-driver
+```
+
+**What it does:**
+1. Creates a uniquely named headless Herdr session (private socket)
+2. Spawns seats with `herdr agent start` and drives them via `pane run` / `agent send` / `send-keys`
+3. Synchronizes on native agent status or new-output matches — never scrollback greps
+4. Runs an interactive supervision loop: scans for approval dialogs (auto-approves read-only operations only, surfaces everything else), answers unambiguous questions, and steers seats that drift or stall
+5. Stops and deletes the private session on the way out, even on failure
+
+Born from a shared-driver-socket incident: on a shared socket, one session's `start`/`server stop` kills a sibling session's server and its live seats. Private per-run sockets make that impossible.
 
 ## Patterns and conventions
 
