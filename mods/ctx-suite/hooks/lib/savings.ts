@@ -6,7 +6,9 @@
 // it: those are the tokens not re-read. The count stops when the counterfactual
 // session would have compacted anyway: the person's /compact, Claude Code's own
 // auto compaction, or the counterfactual context reaching the overflow line.
-// Each ctx-suite compaction's own summarizer cost is subtracted.
+// Each ctx-suite compaction's own summarizer cost is subtracted. A request after
+// the prompt cache expired would have re-written the whole counterfactual context,
+// so its share of the shrink is credited at cache-write price, not cache-read.
 //
 // USD is API-equivalent at list input price per model family, with the same
 // ratios the engine uses (cache read 0.1, cache write 1.25, output 5). On a
@@ -23,6 +25,7 @@ const INPUT_USD_PER_M: ReadonlyArray<[RegExp, number]> = [
 	[/haiku/i, 1],
 ];
 const CACHE_READ = 0.1;
+const CACHE_WRITE = 1.25;
 
 export function inputPrice(model: string | null | undefined): number | null {
 	if (!model) return null;
@@ -41,7 +44,7 @@ export interface UsageLike {
 export function usageUSD(u: UsageLike | undefined, model: string | null | undefined): number {
 	const p = inputPrice(model);
 	if (!u || p === null) return 0;
-	const rel = (u.input_tokens ?? 0) + 1.25 * (u.cache_creation_input_tokens ?? 0) + CACHE_READ * (u.cache_read_input_tokens ?? 0) + 5 * (u.output_tokens ?? 0);
+	const rel = (u.input_tokens ?? 0) + CACHE_WRITE * (u.cache_creation_input_tokens ?? 0) + CACHE_READ * (u.cache_read_input_tokens ?? 0) + 5 * (u.output_tokens ?? 0);
 	return (rel / 1e6) * p;
 }
 
@@ -49,11 +52,11 @@ export function freshSavings(): SavingsState {
 	return { offset: 0, compactions: 0, requests: 0, tokens: 0, usdSaved: 0, usdSpent: 0 };
 }
 
-/** One main-loop model request: it re-reads `offset` fewer tokens than it would have. */
-export function onRequest(s: SavingsState, model: string): SavingsState {
+/** One main-loop model request: it re-reads `offset` fewer tokens than it would have; `cold`: re-writes them, past the cache's life. */
+export function onRequest(s: SavingsState, model: string, cold = false): SavingsState {
 	if (s.offset <= 0) return s;
 	const p = inputPrice(model);
-	return { ...s, requests: s.requests + 1, tokens: s.tokens + s.offset, usdSaved: s.usdSaved + (p === null ? 0 : (s.offset / 1e6) * p * CACHE_READ) };
+	return { ...s, requests: s.requests + 1, tokens: s.tokens + s.offset, usdSaved: s.usdSaved + (p === null ? 0 : (s.offset / 1e6) * p * (cold ? CACHE_WRITE : CACHE_READ)) };
 }
 
 /** A compaction: ctx-suite's adds its shrink and its cost; any other means the counterfactual compacted too. */

@@ -105,7 +105,8 @@ test("quality mode fires above its line without cost math", () => {
 
 test("cache hot/cold", () => {
 	expect(isCacheHot(input())).toBe(true);
-	expect(isCacheHot(input({ now: 1_000_000 + 400_000 }))).toBe(false);
+	expect(isCacheHot(input({ now: 1_000_000 + 400_000 }))).toBe(true); // the cache lives an hour, not 5 minutes
+	expect(isCacheHot(input({ now: 1_000_000 + 3_600_000 }))).toBe(false);
 	expect(isCacheHot(input({ modelKey: "claude-sonnet-5-5" }))).toBe(false);
 	expect(isCacheHot(input({}, { cache: { ttlShort: 0 } }))).toBe(false);
 });
@@ -119,8 +120,10 @@ test("savings: hot marginal is cacheRead × horizon; cold is one full turn + (H-
 	near(hot.savings, hot.horizonTurns * ((tokens - after) / 1e6) * 0.1);
 	const cold = savingsEstimate(i, tokens, 200_000, false, 1, summary);
 	near(cold.savings, ((tokens - after) / 1e6) * (1 + (cold.horizonTurns - 1) * 0.1));
-	// cost: summarizer input at full price + output + rebuild
-	near(hot.cost, tokens / 1e6 + (summary / 1e6) * 5 + (after / 1e6) * 1.25);
+	// cost: summarizer input + output + rebuild. On a hot cache the summarizer reads the context from
+	// cache (live 2026-10-05: 494,086 and 511,667 tokens read, 1,165 and 1,216 written); cold, at full price.
+	near(hot.cost, (tokens / 1e6) * 0.1 + (summary / 1e6) * 5 + (after / 1e6) * 1.25);
+	near(cold.cost, tokens / 1e6 + (summary / 1e6) * 5 + after / 1e6);
 });
 
 test("horizon clamps to [1, 50]", () => {
@@ -160,6 +163,6 @@ test("focus instructions: task subjects, structured verbatim retention", () => {
 
 test("fast growth on a 200k window declines: the regrowth horizon is too short to pay", () => {
 	const fast = input();
-	fast.state.growthPerTurn = 8_000; // H = 18 turns: savings ≈ 0.65 × cost < 1.25 × cost
+	fast.state.growthPerTurn = 20_000; // H = 8 turns: savings ≈ 0.6 × cost < 1.25 × cost
 	expect((evaluateEconomy(fast) as { why: string }).why).toMatch(/^savings .* <= cost/);
 });

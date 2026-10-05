@@ -42,7 +42,8 @@ export const RELATIVE_PRICES: Prices = { input: 1, output: 5, cacheRead: 0.1, ca
 export const CLAUDE_PROFILE: Profile = {
 	mode: "balanced",
 	tiers: [],
-	cache: { ttlShort: 300 },
+	// Claude Code's prompt cache lives an hour (30 days of sessions: 91% of requests 15-55 min idle hit it, 4.5% past 65 min).
+	cache: { ttlShort: 3_600 },
 	compaction: { tokenFloor: 40_000, floorFraction: 0.15, minGapTokens: 20_000, minIntervalTurns: 4, qualityLine: 0.5 },
 	gate: { enabled: true, aggressiveBelow: 0.35, deferAbove: 0.7 },
 };
@@ -124,7 +125,8 @@ export type Decision =
 	| { kind: "economy"; cacheHot: boolean; savings: number; cost: number; continuationProbability: number; horizonTurns: number }
 	| { kind: "warn-overflow"; tokens: number; line: number }
 	| { kind: "warn-tier"; tokens: number; boundary: number; projected: number }
-	| { kind: "quality"; tokens: number; line: number };
+	| { kind: "quality"; tokens: number; line: number }
+	| { kind: "expiry"; tokens: number; idleMs: number };
 
 export function isCacheHot(input: EvalInput): boolean {
 	if (input.profile.mode === "quality") return false;
@@ -227,8 +229,9 @@ export function savingsEstimate(
 	const tiers = profile.tiers;
 	const afterTokens = Math.min(KEEP_RECENT_TOKENS, tokens) + summaryTokens;
 
-	// The summarizer request does not hit the conversation cache: full input price.
-	const summaryInputCost = inputCost(prices, tiers, tokens);
+	// On a hot cache the summarizer request reads the conversation from cache (live 2026-10-05: 494,086
+	// and 511,667 tokens read, ~1.2k written, in two compactions); on a cold one it pays full input price.
+	const summaryInputCost = inputCost(prices, tiers, tokens) * (hot ? prices.cacheRead / prices.input : 1);
 	const summaryOutputCost = (summaryTokens / 1_000_000) * prices.output;
 	const rebuildCost = (afterTokens / 1_000_000) * (hot ? prices.cacheWrite : prices.input);
 	const cost = summaryInputCost + summaryOutputCost + rebuildCost;

@@ -38,6 +38,18 @@
       "description": "Quiet time after a turn before a smart-compaction evaluation (5-600).",
       "default": 20
     },
+    "compactBeforeExpiry": {
+      "type": "boolean",
+      "title": "Compact before the cache expires",
+      "description": "Once per idle stretch, compact a context past the floor shortly before the prompt cache expires, so a return after the break does not re-write all of it. Needs smartTiming.",
+      "default": true
+    },
+    "cacheTtlMinutes": {
+      "type": "number",
+      "title": "Prompt-cache lifetime (minutes)",
+      "description": "How long Claude Code's prompt cache stays warm (5-60). The pre-expiry compaction runs at 50/60 of it.",
+      "default": 60
+    },
     "qualityLine": {
       "type": "number",
       "title": "Fire line (fraction of window)",

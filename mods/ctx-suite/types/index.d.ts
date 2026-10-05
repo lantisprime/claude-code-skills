@@ -56,7 +56,7 @@ export interface SavingsState {
 	requests: number;
 	/** Tokens not re-read: the offset summed over those requests. */
 	tokens: number;
-	/** API-equivalent USD of those tokens at cache-read price. */
+	/** API-equivalent USD of those tokens: cache-read price, or cache-write price for a request after the cache expired. */
 	usdSaved: number;
 	/** API-equivalent USD of the counted compactions' summarizer calls. */
 	usdSpent: number;
@@ -82,6 +82,10 @@ export interface CtxSuiteSnapshot {
 	backgroundLabels?: Record<string, string>;
 	/** Background tasks that reported a failure, by action label: still failing until the same action succeeds. */
 	backgroundFailing?: string[];
+	/** Armed by each main-loop turn, used up by one pre-expiry evaluation: at most one per idle stretch. */
+	expiryArmed?: boolean;
+	/** Epoch ms of the last main-loop model request, to tell a request after the cache expired. */
+	lastStepAt?: number;
 	cacheHitPct: number | null;
 	lastDecision: { kind: string; why?: string; at: number } | null;
 	lastGate: { probability?: number; source: string; action: string; detail?: string; at: number } | null;

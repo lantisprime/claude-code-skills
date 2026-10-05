@@ -12,6 +12,10 @@ export interface Config {
 	shapeCompactions: boolean;
 	smartTiming: boolean;
 	idleMs: number;
+	/** Compact once while idle, shortly before the prompt cache expires (the context is then read from cache, not re-written). */
+	compactBeforeExpiry: boolean;
+	/** Prompt-cache lifetime: the engine's hot/cold test, stubbing, and the pre-expiry window. */
+	cacheTtlMs: number;
 	qualityLine: number;
 	reserveTokens: number;
 	driftToast: boolean;
@@ -58,6 +62,8 @@ export function loadConfig(o: PluginOptions): Config {
 		shapeCompactions: bool(o.shapeCompactions, true),
 		smartTiming: bool(o.smartTiming, true),
 		idleMs: num(o.idleSeconds, 20, 5, 600) * 1000,
+		compactBeforeExpiry: bool(o.compactBeforeExpiry, true),
+		cacheTtlMs: num(o.cacheTtlMinutes, 60, 5, 60) * 60_000,
 		qualityLine: num(o.qualityLine, 0.5, 0.2, 0.9),
 		reserveTokens: num(o.reserveTokens, 33_000, 0, 200_000),
 		driftToast: bool(o.driftToast, true),

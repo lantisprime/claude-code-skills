@@ -28,10 +28,13 @@ const PROMPT_SUBJECT_CHARS = 300;
 const PROBE_PER_TURN = 20;
 const PROBE_AT_COMPACTION = 200;
 /**
- * A turn within this long keeps the summarizer's prompt cache hot. Claude Code
- * caches for up to an hour; misjudging hot as cold is the expensive mistake.
+ * Compacting before the prompt cache expires: idle for this share of the cache's
+ * life, the summarizer still reads the context from cache (0.1); a return after
+ * it re-writes the whole context (1.25). Past the late share the cache may be
+ * cold already (a laptop that slept through the window), so the attempt is skipped.
  */
-const STUB_CACHE_HOT_MS = 3_600_000;
+const EXPIRY_FIRE = 50 / 60;
+const EXPIRY_LATE = 55 / 60;
 /**
  * A background task (a shell sent to the background, a background agent) whose
  * result the model has not read yet holds every compaction ctx-suite starts: a
@@ -113,6 +116,7 @@ export class Suite {
 		return {
 			profile: {
 				...CLAUDE_PROFILE,
+				cache: { ttlShort: c.cacheTtlMs / 1000 },
 				compaction: { ...CLAUDE_PROFILE.compaction, qualityLine: c.qualityLine },
 				gate: { enabled: true, aggressiveBelow: c.judge.aggressiveBelow, deferAbove: c.judge.deferAbove },
 			},
@@ -154,9 +158,30 @@ export class Suite {
 		return v.drop;
 	}
 
-	/** A main-loop model request (turn.step). */
-	onStep(model: string): void {
-		this.rt.savings = onRequest(this.rt.savings ?? freshSavings(), model);
+	/** A main-loop model request (turn.step). The first after the cache expired would have re-written the shrink too. */
+	onStep(model: string, now: number): void {
+		// only a recorded previous request dates the cache (after a reload mid-turn there is none)
+		const prev = this.rt.lastStepAt;
+		const cold = prev !== undefined && now - prev >= this.cfg.cacheTtlMs;
+		this.rt.lastStepAt = now;
+		this.rt.savings = onRequest(this.rt.savings ?? freshSavings(), model, cold);
+	}
+
+	/**
+	 * A pre-expiry evaluation is due: idle between the fire and late shares of the
+	 * cache's life, armed by a main-loop turn since the last attempt. One attempt
+	 * per idle stretch, compacted or not, so a session left open never compacts hourly.
+	 */
+	expiryDue(now: number): boolean {
+		const last = this.rt.engine.lastLLMCallAt;
+		if (!this.cfg.compactBeforeExpiry || !this.rt.expiryArmed || last === null || this.busy || this.turnRunning) return false;
+		const idle = now - last;
+		if (idle >= this.cfg.cacheTtlMs * EXPIRY_LATE) {
+			this.rt.expiryArmed = false;
+			this.record("expiry-missed", { idleMs: idle });
+			return false;
+		}
+		return idle >= this.cfg.cacheTtlMs * EXPIRY_FIRE;
 	}
 
 	/** This session's measured savings, once ctx-suite has compacted (for the store and telemetry). */
@@ -177,6 +202,7 @@ export class Suite {
 		this.rt.background = {};
 		this.rt.backgroundLabels = {};
 		this.rt.backgroundFailing = [];
+		this.rt.expiryArmed = false;
 		this.sessionId = null;
 	}
 
@@ -307,6 +333,8 @@ export class Suite {
 			}
 			eng.lastLLMCallAt = now;
 			eng.cacheModelKey = usage.model;
+			// only a turn that refreshed the idle clock arms the pre-expiry evaluation
+			this.rt.expiryArmed = true;
 		}
 		eng.turnCounter++;
 		eng.turnsSinceCompaction++;
@@ -359,7 +387,7 @@ export class Suite {
 			: none;
 		const { lastLLMCallAt: last, sessionModel } = this.rt.engine;
 		// A model switched since the last turn shares no cache entries with it.
-		const hot = last !== null && now - last < STUB_CACHE_HOT_MS && (sessionModel === null || sessionModel === model);
+		const hot = last !== null && now - last < this.cfg.cacheTtlMs && (sessionModel === null || sessionModel === model);
 		const withheld = hot ? planned.stubbed : 0;
 		const shaped = hot ? none : planned;
 		if (withheld > 0 && planned.staleReads.length > 0) {
@@ -399,12 +427,16 @@ export class Suite {
 		return true;
 	}
 
-	/** Phase 3: decide, judge, compact. `force` bypasses min-interval only (the guards stay). */
-	async evaluate(io: Io, force: boolean): Promise<string> {
+	/**
+	 * Phase 3: decide, judge, compact. `force` bypasses min-interval only (the guards stay).
+	 * `expiry`: the pre-expiry evaluation, which may compact below the fire line and uses up the idle stretch.
+	 */
+	async evaluate(io: Io, force: boolean, expiry = false): Promise<string> {
 		if (this.busy) return "a ctx-suite evaluation is already running";
 		this.busy = true;
+		if (expiry) this.rt.expiryArmed = false;
 		try {
-			return await this.decideAndCompact(io, force);
+			return await this.decideAndCompact(io, force, expiry);
 		} catch (err) {
 			this.record("evaluate-failed", { error: String(err).slice(0, 200) });
 			return "evaluation failed (a turn is running?)";
@@ -413,7 +445,7 @@ export class Suite {
 		}
 	}
 
-	private async decideAndCompact(io: Io, force: boolean): Promise<string> {
+	private async decideAndCompact(io: Io, force: boolean, expiry: boolean): Promise<string> {
 		const now = await io.now();
 		// Forced or not: a background result not yet read is the work at hand, never summarized away.
 		const pending = this.backgroundPending(now);
@@ -430,9 +462,14 @@ export class Suite {
 		const impurity = health(this.rt.spans).impurity;
 		// pi's purity budget, folded in: a context this full of dead output may compact below the fire line.
 		if (d.kind === "none" && d.why.startsWith("below fire-line") && impurity >= this.cfg.purityHard) d = { kind: "quality", tokens: input.usage?.tokens ?? 0, line: 0 };
+		// Before the cache expires, past the floor, gap and interval guards: compacting now reads the context
+		// from cache, while a return after the break would re-write all of it. A switched model's cache is cold already.
+		if (expiry && input.cacheHot !== false && d.kind === "none" && (d.why.startsWith("below fire-line") || d.why.startsWith("savings "))) {
+			d = { kind: "expiry", tokens: input.usage?.tokens ?? 0, idleMs: now - (this.rt.engine.lastLLMCallAt ?? now) };
+		}
 		this.rt.lastDecision = { kind: d.kind, why: d.kind === "none" ? d.why : undefined, at: now };
 		this.record("decision", { force, decision: d, impurity });
-		if (d.kind !== "economy" && d.kind !== "quality") return `no compaction — ${d.kind === "none" ? d.why : d.kind}`;
+		if (d.kind !== "economy" && d.kind !== "quality" && d.kind !== "expiry") return `no compaction — ${d.kind === "none" ? d.why : d.kind}`;
 
 		const msgs = await io.messages();
 		const texts = msgs.map((m) => m.text).filter(Boolean);
@@ -453,6 +490,9 @@ export class Suite {
 		const action = gate.result.action;
 		if (action === "defer") return `deferred — ${gate.result.detail ?? "the context is task-relevant"}`;
 		if (this.turnRunning) return "a turn is running; not compacting";
+		// the judge took time: past the late line the cache may be cold by now
+		const last = this.rt.engine.lastLLMCallAt;
+		if (expiry && last !== null && (await io.now()) - last >= this.cfg.cacheTtlMs * EXPIRY_LATE) return "no compaction — the cache may have expired while judging";
 
 		const r = await io.compact(this.instructionsFor(action));
 		if (r.skip !== undefined) {
@@ -496,6 +536,7 @@ export class Suite {
 			`context: ${context.tokens ?? "?"} / ${context.window} tok · fire line ${Math.round(c.qualityLine * context.window)} · floor ${Math.round(fl.floor)} (${fl.driver}) · reserve ${c.reserveTokens}`,
 			`model: ${e.cacheModelKey ?? "unknown"} · cache ${e.lastLLMCallAt ? `${Math.round((now - e.lastLLMCallAt) / 1000)}s since last call` : "cold"} · prices: relative (in 1, out 5, read 0.1, write 1.25)`,
 			`growth/turn: ${e.growthPerTurn?.toFixed(0) ?? "?"} tok · turns since compaction: ${e.turnsSinceCompaction} · smart timing: ${c.smartTiming ? `on (idle ${c.idleMs / 1000}s)` : "off"}`,
+			`cache ttl: ${c.cacheTtlMs / 60_000} min · before expiry: ${c.smartTiming && c.compactBeforeExpiry ? `compact at ${Math.round((c.cacheTtlMs * EXPIRY_FIRE) / 60_000)} min idle (${this.rt.expiryArmed ? "armed" : "used for this idle stretch"})` : "off"}`,
 			`last decision: ${d ? `${d.kind}${d.why ? ` — ${d.why}` : ""}` : "none yet"}`,
 			`last gate: ${gt ? `${gt.action} via ${gt.source}${gt.probability != null ? ` p=${gt.probability.toFixed(2)}` : ""}${gt.detail ? ` — ${gt.detail}` : ""}` : "none yet"}`,
 			`judge: ${g.enabled ? g.model : "OFF"} · effort ${g.effort} · timeout ${g.timeoutMs}ms · excerpt ≤${g.maxExcerptChars} chars · ≤${g.maxCallsPerHour}/h (${recentCalls(this.rt.judgeCallsAt, now).length} used) · aggressive <${g.aggressiveBelow}${g.allowAggressive ? "" : " (disabled)"} · defer >${g.deferAbove} · heuristic aggressive: ${g.fallbackMayBeAggressive ? "allowed" : "no"}`,

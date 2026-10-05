@@ -5,7 +5,9 @@
 // Phase 2 shape:   every main-loop session.compact gets task-aware instructions; stubs on a cold cache only.
 // Prompt screen:  an abusive prompt with no task content is dropped before it enters the session.
 // Phase 3 timing:  after a turn, once idle, the cost engine + relevance judge decide whether to
-//                  compact; /compact-smart forces an evaluation, /compact-why explains.
+//                  compact; /compact-smart forces an evaluation, /compact-why explains. Once per
+//                  idle stretch, shortly before the prompt cache expires, a context past the
+//                  floor compacts while the summarizer can still read it from cache.
 //
 // Fail-open throughout: every hook's .catch passes the event on unchanged.
 
@@ -63,9 +65,16 @@ export const register: Register = (on, options) => {
 			ticking = true;
 			void (async () => {
 				const now = await $.clock.now();
-				if (s.cfg.smartTiming && s.idleDue !== null && now >= s.idleDue && !s.busy && !s.turnRunning) {
+				const idle = s.cfg.smartTiming && s.idleDue !== null && now >= s.idleDue && !s.busy && !s.turnRunning;
+				const expiry = !idle && s.cfg.smartTiming && s.expiryDue(now);
+				if (idle || expiry) {
 					s.idleDue = null;
-					$.ui.status(s.statusText("evaluating"));
+					// the stretch's one attempt is used now: a reload mid-evaluation must not retry it
+					if (expiry) {
+						s.rt.expiryArmed = false;
+						await $.state.set(RT, s.rt).catch(noop);
+					}
+					$.ui.status(s.statusText(expiry ? "before cache expiry" : "evaluating"));
 					await s.evaluate(
 						{
 							context: async () => (await $.session.usage()).context,
@@ -76,6 +85,7 @@ export const register: Register = (on, options) => {
 							model: () => $.session.model(),
 						},
 						false,
+						expiry,
 					);
 					void $.state.set(RT, s.rt).catch(noop);
 					const sv = s.savingsEntry();
@@ -135,7 +145,7 @@ export const register: Register = (on, options) => {
 
 	// One main-loop model request: what the savings count per request.
 	on("turn.step", async function* ($, e, next) {
-		if (e.agentId === undefined) s.onStep(e.model);
+		if (e.agentId === undefined) s.onStep(e.model, await $.clock.now());
 		return yield* next(e);
 	});
 

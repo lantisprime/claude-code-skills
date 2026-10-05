@@ -18,6 +18,7 @@ How each part was measured is under Tools and Results below; the tools are in `e
 | **Shape** | Every main-loop compaction gets task-aware focus instructions: keep task facts as tabulated lists, and keep identifiers verbatim. Stale, superseded, duplicate and repeated-failure tool outputs are stubbed only when the summarizer's cache is cold. With a warm cache, the stale reads are named in the instructions instead. |
 | **Screen** | When a prompt you typed is only insults, slurs or hostile profanity, with no task content, it is dropped before it enters the session, so it reaches neither the model's context nor the transcript. You see "prompt not sent or saved". The word list drops prompts that are only strong insults or slurs. Other candidates get a quick Haiku 4.5 check, which drops a prompt only when it is abusive and carries nothing actionable. Negative feedback without abuse ("no, wrong again") always goes through, as does anything with task signal in it ("wrong again you idiot"). If the check fails, the prompt goes through. |
 | **Time** | After an answered turn and 20 seconds of idle, the cost engine checks the context against the fire line (0.5 × window). If the saving outweighs the compaction's cost, a Sonnet 5.5 relevance judge picks aggressive, focused or defer, and the mod compacts. |
+| **Before the cache expires** | Claude Code's prompt cache lives an hour. After 50 minutes idle, a context past the 150k floor compacts while the summarizer can still read it from cache, so coming back after the break doesn't re-write the whole context at 1.25×. It runs at most once per idle stretch (a new turn re-arms it), skips once 55 minutes have passed (the Mac may have slept and the cache gone cold) or after a model switch, and waits like every ctx-suite compaction for background tasks and the judge. |
 
 **Task subjects.** They come from the task tools (TaskCreate, TaskUpdate,
 TodoWrite) when the build has them. Otherwise they are the session's first and
@@ -72,6 +73,7 @@ Telemetry goes to `~/.claude/cache/ctx-suite/telemetry.jsonl`, capped at the las
 | `redact`, `redactPatterns` | on, none | Extra patterns are space-separated regexes. A pattern is rejected if it is longer than 200 characters or matches the empty string. |
 | `shapeCompactions` | on | Stubs apply only on a cold cache. |
 | `smartTiming`, `idleSeconds` | on, 20 | |
+| `compactBeforeExpiry`, `cacheTtlMinutes` | on, 60 | The pre-expiry compaction, at 50/60 of the TTL. The TTL also sets the engine's hot/cold cache test and when stubbing applies. The TTL depends on your plan; lower it if your cache lives 5 minutes. |
 | `qualityLine` | 0.5 | The fire line as a share of the window. A lower line compacts more often (see Savings below). |
 | `reserveTokens` | 33000 | |
 | `judgeEnabled`, `judgeModel`, `judgeEffort` | on, `claude-sonnet-5-5`, low | |
@@ -88,6 +90,7 @@ Telemetry goes to `~/.claude/cache/ctx-suite/telemetry.jsonl`, capped at the las
 | `baseline.py` | Per-session context size per request, the live share of tool output, and token and USD consumption. `--with-ctx-suite` and `--without-ctx-suite` split sessions using `sessions.txt`. |
 | `replay.py` | Projected savings: replays baseline sessions request by request as if smart compaction had run. Takes `--fire` for the fire lines and `--json` for an output file. |
 | `debugsim.mjs` | A debugging-session simulation: a live failing test, scripts that only *mention* exit codes, a failure later fixed, a repeated failure, a harness refusal and a background RED run, then `/compact` and a recall question |
+| `weekly.py` | The last 7 days against the 30-day baseline: requests per prompt, context per request, subagent share of cost and measured savings. No model calls. A launchd job runs it every Monday (see below). |
 | `niah.mjs` | A multi-haystack needle-in-a-haystack corpus, combining pi's code and hybrid generator with three unrelated prose haystacks. It produces a tagged question bank for live A/B seats. |
 
 ## Results (2026-10-05)
@@ -135,7 +138,8 @@ On a subscription plan, this saving shows up as slower use of the 5-hour and
 **Measured automatically.** After each compaction ctx-suite starts, it counts every
 later main-loop request, using one `turn.step` per request. Each request is credited
 with the tokens it did not re-read. The compaction's own summarizer cost is subtracted.
-The count stops when the session would have compacted anyway: your `/compact`, Claude
+The first request after the prompt cache expired is credited at cache-write price (1.25), since
+without the compaction it would have re-written the whole context. The count stops when the session would have compacted anyway: your `/compact`, Claude
 Code's own auto-compaction, or the counterfactual context reaching the overflow line.
 
 The result appears in `/ctx-health`:
@@ -155,6 +159,10 @@ To check the overall saving against the baseline after a week of use:
 ```sh
 python3 eval/baseline.py --since 2026-10-05 --with-ctx-suite
 ```
+
+`eval/weekly.py` does this every week. To schedule it on macOS, install a LaunchAgent that runs
+`python3 eval/weekly.py --notify` (for example every Monday at 09:07); the report lands in
+`~/.claude/cache/ctx-suite/weekly/<date>.txt`, with one row per week in `summary.jsonl`.
 
 Compare its output with the snapshot in
 `~/.claude/cache/ctx-suite/baseline-2026-10-05-30d.json`, and confirm that
