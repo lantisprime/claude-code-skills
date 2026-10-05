@@ -198,6 +198,12 @@ export const register: Register = (on, options) => {
 	}).catch(($, e, next) => next(e));
 
 	on("prompt.submit", async ($, e, next) => {
+		// A background task reported back: its result is read in this prompt's turn.
+		if (e.origin?.kind === "task-notification") {
+			s.onTaskNotification(e.text);
+			void $.state.set(RT, s.rt).catch(noop);
+			return next(e);
+		}
 		// The person's own prompts only: answering without next enters nothing, in the context or the transcript.
 		const own = e.origin?.kind === "composer" || e.origin?.kind === "bridge";
 		if (own && (await s.screenPrompt(e.text, (e.attachments?.length ?? 0) > 0, (req) => $.model.complete(req)))) {
@@ -225,7 +231,7 @@ export const register: Register = (on, options) => {
 	on("command.run", { command: "ctx-task" }, async ($, e) => {
 		const text = s.pinTask(e.args);
 		void $.state.set(RT, s.rt).catch(noop);
-		return { text: `ctx-suite: ${text}` };
+		return { text };
 	}).catch(($, e, next) => next(e));
 
 	on("command.run", { command: "compact-smart" }, async ($) => {
@@ -242,7 +248,7 @@ export const register: Register = (on, options) => {
 		);
 		void $.state.set(RT, s.rt).catch(noop);
 		$.ui.status(s.statusText());
-		return { text: `ctx-suite: ${text}` };
+		return { text };
 	}).catch(($, e, next) => next(e));
 
 	on("command.run", { command: "compact-why" }, async ($) => ({

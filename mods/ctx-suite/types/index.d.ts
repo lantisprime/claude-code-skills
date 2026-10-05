@@ -13,6 +13,12 @@ export interface Span {
 	cls: SpanClass;
 	/** File a Read span captured, for staleness. */
 	path?: string;
+	/** The action that produced it (lib/spans.ts actionKey): links an error to the later runs that resolve or repeat it. */
+	action?: string;
+	/** An error's origin: the harness refused the call, or the action ran and failed. */
+	origin?: "harness" | "command";
+	/** The result only sent the run to the background: it is neither a success nor a failure of the action. */
+	bg?: true;
 	/** Epoch ms the result was captured. */
 	at: number;
 }
@@ -70,6 +76,12 @@ export interface CtxSuiteSnapshot {
 	/** Abusive prompts dropped before they entered the session (counts only; the text is never kept). */
 	promptsDropped: number;
 	savings: SavingsState;
+	/** Background tasks started and not yet reported back: id → epoch ms started. ctx-suite does not compact while any is outstanding. */
+	background: Record<string, number>;
+	/** What each outstanding background task runs (id → action label), so a failed one can be named. */
+	backgroundLabels?: Record<string, string>;
+	/** Background tasks that reported a failure, by action label: still failing until the same action succeeds. */
+	backgroundFailing?: string[];
 	cacheHitPct: number | null;
 	lastDecision: { kind: string; why?: string; at: number } | null;
 	lastGate: { probability?: number; source: string; action: string; detail?: string; at: number } | null;

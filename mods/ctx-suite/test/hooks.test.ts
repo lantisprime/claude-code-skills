@@ -100,7 +100,7 @@ test("/compact-smart reports the decision without compacting an empty session", 
 		return { messages: e.messages };
 	});
 	const { text } = await run($, "compact-smart");
-	expect(text).toMatch(/^ctx-suite: no compaction — /);
+	expect(text).toMatch(/^no compaction — /); // Claude Code adds the plugin name itself
 	expect(compacted).toBe(false);
 });
 
@@ -111,7 +111,7 @@ test("/ctx-task pins the task the focus instructions name", async ($, on) => {
 		instructions = e.instructions;
 		return { messages: e.messages.slice(-2) };
 	});
-	expect((await run($, "ctx-task", "ship the ingest codec")).text).toBe("ctx-suite: tasks (active): ship the ingest codec");
+	expect((await run($, "ctx-task", "ship the ingest codec")).text).toBe("tasks (active): ship the ingest codec");
 	await $.session.compact({ trigger: "manual", messages: convo() });
 	expect(instructions).toContain("current tasks: ship the ingest codec");
 });

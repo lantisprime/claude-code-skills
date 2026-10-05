@@ -13,8 +13,8 @@ import type { Config } from "./config.ts";
 import { CLAUDE_PROFILE, RELATIVE_PRICES, effectiveFloor, evaluateEconomy, evaluateWarnings, focusInstructions, initState, type Decision, type EvalInput } from "./engine.ts";
 import { heuristicRelevance, recentCalls, relevanceGate, type Action } from "./gate.ts";
 import { compilePatterns, redactText } from "./redact.ts";
-import { shapeMessages, type ShapeResult } from "./shape.ts";
-import { addSpan, classify, estimateTokens, fingerprint, health, isWriteTool, markStale, pathOf, probeTargets } from "./spans.ts";
+import { liveFailures, shapeMessages, type ShapeResult } from "./shape.ts";
+import { actionKey, actionLabel, addSpan, backgroundStart, classify, errorOrigin, estimateTokens, fingerprint, health, isWriteTool, markStale, pathOf, probeTargets } from "./spans.ts";
 import { PINNED, applyTaskCall, emptyBoard, viewBoard, type BoardView } from "./tasks.ts";
 import type { Record_ } from "./telemetry.ts";
 
@@ -32,7 +32,13 @@ const PROBE_AT_COMPACTION = 200;
  * caches for up to an hour; misjudging hot as cold is the expensive mistake.
  */
 const STUB_CACHE_HOT_MS = 3_600_000;
-
+/**
+ * A background task (a shell sent to the background, a background agent) whose
+ * result the model has not read yet holds every compaction ctx-suite starts: a
+ * RED test run still going, or finished but not yet consumed, is the work at hand.
+ * One never reported back stops holding after this long.
+ */
+const BACKGROUND_HOLD_MAX_MS = 6 * 3_600_000;
 export interface Io {
 	context: () => Promise<SessionContextUsage>;
 	now: () => Promise<number>;
@@ -44,7 +50,7 @@ export interface Io {
 }
 
 export function freshSnapshot(): CtxSuiteSnapshot {
-	return { spans: [], engine: initState(), board: emptyBoard(), prompts: {}, judgeCallsAt: [], changedAt: {}, redactHits: {}, promptsDropped: 0, savings: freshSavings(), cacheHitPct: null, lastDecision: null, lastGate: null, lastCompaction: null };
+	return { spans: [], engine: initState(), board: emptyBoard(), prompts: {}, judgeCallsAt: [], changedAt: {}, redactHits: {}, promptsDropped: 0, savings: freshSavings(), background: {}, cacheHitPct: null, lastDecision: null, lastGate: null, lastCompaction: null };
 }
 
 export class Suite {
@@ -99,7 +105,7 @@ export class Suite {
 		const h = health(this.rt.spans);
 		const ch = this.rt.cacheHitPct == null ? "" : ` CH${this.rt.cacheHitPct}`;
 		const d = this.rt.lastDecision;
-		return `ctx f${h.share.fresh} s${h.share.stale} d${h.share.dup} e${h.share.error}${ch} · sc ${note ?? (d && d.kind !== "none" ? d.kind : "idle")}`;
+		return `ctx f${h.share.fresh} s${h.share.stale} d${h.share.dup} e${h.share.error} L${h.share.live}${ch} · sc ${note ?? (d && d.kind !== "none" ? d.kind : "idle")}`;
 	}
 
 	evalInput(context: SessionContextUsage, now: number): EvalInput {
@@ -167,6 +173,10 @@ export class Suite {
 	onSessionEnd(reason: string): void {
 		if (reason !== "clear") return;
 		this.rt.savings = freshSavings();
+		// the cleared conversation's background work is not the new one's to wait on
+		this.rt.background = {};
+		this.rt.backgroundLabels = {};
+		this.rt.backgroundFailing = [];
 		this.sessionId = null;
 	}
 
@@ -210,12 +220,68 @@ export class Suite {
 		return `${MARK} ${focusInstructions(action, subjects)} Tool outputs replaced by "[ctx-suite: …]" stubs are stale, superseded, duplicated or repeated failures: do not carry them forward.`;
 	}
 
+	/** A tool result that sent work to the background: hold compactions until its notification is in. */
+	/** A successful tool result that sent work to the background: hold compactions until its notification is in. */
+	private noteBackground(tool: string, input: Record<string, unknown>, text: string, isError: boolean, now: number): string | undefined {
+		if (isError || (tool !== "Bash" && tool !== "Agent" && tool !== "Task")) return undefined;
+		const id = backgroundStart(text);
+		if (!id) return undefined;
+		this.rt.background = { ...(this.rt.background ?? {}), [id]: now };
+		this.rt.backgroundLabels = { ...(this.rt.backgroundLabels ?? {}), [id]: actionLabel(this.action(tool, input)) };
+		this.record("background-started", { id, tool });
+		return id;
+	}
+
+	/** The action key, redacted: it is kept in state and may reach the summarizer's instructions. */
+	private action(tool: string, input: Record<string, unknown>): string {
+		return redactText(actionKey(tool, input), this.custom).text;
+	}
+
+	/** A task-notification prompt: the tasks it reports are done, and its turn is where the model reads them. */
+	onTaskNotification(text: string): void {
+		const bg = { ...(this.rt.background ?? {}) };
+		const labels = { ...(this.rt.backgroundLabels ?? {}) };
+		// a RED run sent to the background fails in its notification, not in a tool result;
+		// only the harness's own status and summary say so, never the output it quotes
+		const status = /<status>([^<]*)<\/status>/i.exec(text)?.[1] ?? "";
+		const summary = /<summary>([^<]*)<\/summary>/i.exec(text)?.[1] ?? "";
+		const failed = /^(?:failed|killed|error)$/i.test(status.trim()) || /exit code [1-9]\d*/i.test(summary);
+		for (const m of text.matchAll(/<task-id>([^<]+)<\/task-id>/g)) {
+			const id = m[1]!.trim();
+			if (id in bg) {
+				delete bg[id];
+				this.record("background-done", { id, failed });
+				const label = labels[id];
+				if (failed && label) this.rt.backgroundFailing = [label, ...(this.rt.backgroundFailing ?? []).filter((l) => l !== label)].slice(0, 5);
+			}
+			delete labels[id];
+		}
+		this.rt.background = bg;
+		this.rt.backgroundLabels = labels;
+	}
+
+	/** Background tasks still outstanding (a stale one past the hold limit is let go). */
+	backgroundPending(now: number): string[] {
+		const bg = this.rt.background ?? {};
+		const live = Object.entries(bg).filter(([, at]) => now - at < BACKGROUND_HOLD_MAX_MS);
+		if (live.length !== Object.keys(bg).length) this.rt.background = Object.fromEntries(live);
+		return live.map(([id]) => id);
+	}
+
 	/** Phase 1: one span per main-loop tool result; task calls feed the board. */
 	onToolResult(tool: string, id: string, input: Record<string, unknown>, rawText: string, isError: boolean, result: unknown, now: number): void {
 		const text = redactText(rawText, this.custom).text;
+		const bg = this.noteBackground(tool, input, text, isError, now);
+		// the same action passing in the foreground settles a background failure of it
+		if (!isError && !bg && this.rt.backgroundFailing?.length) {
+			const label = actionLabel(this.action(tool, input));
+			this.rt.backgroundFailing = this.rt.backgroundFailing.filter((l) => l !== label);
+		}
 		const hash = fingerprint(text);
 		const path = tool === "Read" ? pathOf(input) : undefined;
-		this.rt.spans = addSpan(this.rt.spans, { id, tool, hash, tok: estimateTokens(text), cls: classify(text, isError, hash, this.rt.spans), path, at: now }, this.cfg.keepSpans);
+		const cls = classify(text, isError, hash, this.rt.spans);
+		const span = { id, tool, hash, tok: estimateTokens(text), cls, path, at: now, action: this.action(tool, input), ...(cls === "error" ? { origin: errorOrigin(text) } : {}), ...(bg ? { bg: true as const } : {}) };
+		this.rt.spans = addSpan(this.rt.spans, span, this.cfg.keepSpans);
 		const written = isWriteTool(tool) && !isError ? pathOf(input) : undefined;
 		if (written) markStale(this.rt.spans, written, now);
 		if (TASK_TOOLS.has(tool) && !isError) this.rt.board = applyTaskCall(this.rt.board, tool, input, result);
@@ -286,7 +352,7 @@ export class Suite {
 	shapeCompaction(trigger: string, instructions: string | undefined, messages: readonly SessionMessage[], now: number, model: string): { instructions: string; shaped: ShapeResult; withheld: number } {
 		const c = this.cfg;
 		let ins = instructions?.includes(MARK) ? instructions : [instructions, this.instructionsFor("focused")].filter(Boolean).join("\n\n");
-		const none: ShapeResult = { messages, stubbed: 0, byKind: { "error-loop": 0, stale: 0, superseded: 0, duplicate: 0 }, tokensSaved: 0, staleReads: [] };
+		const none: ShapeResult = { messages, stubbed: 0, byKind: { "error-loop": 0, resolved: 0, stale: 0, superseded: 0, duplicate: 0 }, tokensSaved: 0, staleReads: [] };
 		// A compaction raised outside a session (the test kit) carries no message list.
 		const planned = c.shapeCompactions && Array.isArray(messages)
 			? shapeMessages(messages, { dumpTokens: c.dumpTokens, errorLoopMin: c.errorLoopMin, protectTokens: c.protectTokens, protectMessages: c.protectMessages, changedAt: new Map(Object.entries(this.rt.changedAt)), capturedAt: new Map(this.rt.spans.map((sp) => [sp.id, sp.at])) })
@@ -299,7 +365,12 @@ export class Suite {
 		if (withheld > 0 && planned.staleReads.length > 0) {
 			ins += `\n\nThese files changed after they were read; their earlier contents are stale, do not carry them forward: ${planned.staleReads.slice(-20).join(", ")}.`;
 		}
-		this.record("compact-shaped", { trigger, messages: messages?.length ?? 0, cacheHot: hot, stubbed: shaped.stubbed, withheld, byKind: planned.byKind, tokensSaved: shaped.tokensSaved, staleReads: planned.staleReads.length });
+		// Still-failing actions are likely the bug at hand: their error output must survive word for word.
+		const failing = [...new Set([...(Array.isArray(messages) ? liveFailures(messages) : []), ...(this.rt.backgroundFailing ?? [])].map((f) => redactText(f, this.custom).text))];
+		if (failing.length > 0) {
+			ins += `\n\nThese actions were still failing when this compaction ran, so the work is likely debugging them. Keep each one's latest error output verbatim (the exact message, file and line, and the command that produced it): ${failing.map((f) => `\`${f}\``).join("; ")}.`;
+		}
+		this.record("compact-shaped", { trigger, messages: messages?.length ?? 0, cacheHot: hot, failing: failing.length, stubbed: shaped.stubbed, withheld, byKind: planned.byKind, tokensSaved: shaped.tokensSaved, staleReads: planned.staleReads.length });
 		return { instructions: ins, shaped, withheld };
 	}
 
@@ -311,6 +382,8 @@ export class Suite {
 		e.lastTurnTokens = null;
 		this.rt.spans = [];
 		this.rt.changedAt = {};
+		// the summary now carries them: a failure reported after this compaction starts a new list
+		this.rt.backgroundFailing = [];
 		this.rt.lastCompaction = { trigger, at, stubbed, withheld, tokensSaved, tokensBefore: r.tokensBefore, tokensAfter: r.tokensAfter };
 		this.rt.savings = onCompaction(this.rt.savings ?? freshSavings(), trigger, r.tokensBefore, r.tokensAfter, r.usage, e.cacheModelKey);
 		this.record("compacted", { ...this.rt.lastCompaction, usage: r.usage });
@@ -342,6 +415,12 @@ export class Suite {
 
 	private async decideAndCompact(io: Io, force: boolean): Promise<string> {
 		const now = await io.now();
+		// Forced or not: a background result not yet read is the work at hand, never summarized away.
+		const pending = this.backgroundPending(now);
+		if (pending.length > 0) {
+			this.rt.lastDecision = { kind: "none", why: `background task(s) still running or unread: ${pending.join(", ")}`, at: now };
+			return `no compaction — waiting on ${pending.length} background task${pending.length === 1 ? "" : "s"} (${pending.join(", ")}) until ${pending.length === 1 ? "its" : "their"} result is read`;
+		}
 		const input = this.evalInput(await io.context(), now);
 		if (force) input.state = { ...input.state, turnsSinceCompaction: Number.MAX_SAFE_INTEGER };
 		// A model switched since the last turn has a cold cache.
@@ -393,11 +472,13 @@ export class Suite {
 		const hits = Object.entries(this.rt.redactHits).map(([k, n]) => `${k}×${n}`).join(", ") || "none";
 		const lc = this.rt.lastCompaction;
 		return [
-			`spans: ${h.spans} (${h.tokens} tok) · fresh ${h.share.fresh}% · stale ${h.share.stale}% · dup ${h.share.dup}% · error ${h.share.error}%`,
+			`spans: ${h.spans} (${h.tokens} tok) · fresh ${h.share.fresh}% · stale ${h.share.stale}% · dup ${h.share.dup}% · error ${h.share.error}% · live ${h.share.live}%`,
+			`errors: dead ${h.share.error}% (resolved ${h.errors.resolved}, repeated ${h.errors.repeated}, harness ${h.errors.harness}) · live ${h.share.live}%${h.failing.length || this.rt.backgroundFailing?.length ? ` — still failing: ${[...new Set([...h.failing, ...(this.rt.backgroundFailing ?? [])])].join(", ")}` : ""}`,
 			`impurity: ${(h.impurity * 100).toFixed(0)}% (purity override at ${(this.cfg.purityHard * 100).toFixed(0)}%) · files changed outside: ${Object.keys(this.rt.changedAt).length}`,
 			`cache hit (last turn): ${this.rt.cacheHitPct == null ? "n/a" : `${this.rt.cacheHitPct}%`}`,
 			`redaction: ${this.cfg.redact ? "on" : "OFF"} · hits: ${hits} · abusive prompts dropped: ${this.cfg.dropAbusive ? (this.rt.promptsDropped ?? 0) : "OFF"}`,
 			`tasks: ${v.state}${v.activeSubjects.length ? ` — ${v.activeSubjects.join("; ")}` : ""}`,
+			`background: ${Object.keys(this.rt.background ?? {}).length ? `${Object.keys(this.rt.background).join(", ")} running or unread — compaction holds` : "none"}`,
 			`last compaction: ${lc ? `${lc.trigger}, ${lc.stubbed} outputs stubbed (~${lc.tokensSaved} tok)${lc.withheld ? `, ${lc.withheld} withheld (cache hot)` : ""}, ${lc.tokensBefore ?? "?"} → ${lc.tokensAfter ?? "?"} tok` : "none yet"}`,
 			savingsText(this.rt.savings ?? freshSavings(), "savings (this session)"),
 			...(lifetime && lifetime.sessions > 0 ? [`${savingsText(lifetime, "savings (all sessions)")} · ${lifetime.sessions} session${lifetime.sessions === 1 ? "" : "s"}`] : []),

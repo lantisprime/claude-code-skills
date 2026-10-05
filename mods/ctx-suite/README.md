@@ -24,6 +24,19 @@ TodoWrite) when the build has them. Otherwise they are the session's first and
 latest prompts, redacted and cut to 300 characters. `/ctx-task` pins one
 explicitly.
 
+**Errors.** Each error is tied to the action that produced it:
+- **How the action is identified:** Bash by its command, keyed on the chain's last step, without `cd …` or display pipes; other tools by their arguments.
+- **What counts as an error:** only a result the harness itself flagged. Text such as `exit 1` in a script that was read does not count.
+- **Error states:**
+  - **live** (`L` in the status line): the newest run of that action failed, so the session is probably debugging it, as in a TDD RED run. Live failures are not dead weight. Every compaction names them and keeps their latest error output verbatim.
+  - **resolved:** a later run of the same action succeeded.
+  - **repeated:** a newer identical failure exists.
+  - **harness:** Claude Code refused the call, and a later call of that tool succeeded.
+
+  Only the last three are dead weight (`e` in the status line).
+
+**Background tasks.** A shell command or agent sent to the background holds every compaction ctx-suite starts, idle or `/compact-smart`, until its result has been delivered and read. A background task that fails, such as a RED test run, is named as still failing until the same command passes.
+
 **Staleness.** After each turn, 20 read files are checked for outside edits,
 rotating through all of them. A compaction checks every read file, up to the
 newest 200.
@@ -74,6 +87,7 @@ Telemetry goes to `~/.claude/cache/ctx-suite/telemetry.jsonl`, capped at the las
 | --- | --- |
 | `baseline.py` | Per-session context size per request, the live share of tool output, and token and USD consumption. `--with-ctx-suite` and `--without-ctx-suite` split sessions using `sessions.txt`. |
 | `replay.py` | Projected savings: replays baseline sessions request by request as if smart compaction had run. Takes `--fire` for the fire lines and `--json` for an output file. |
+| `debugsim.mjs` | A debugging-session simulation: a live failing test, scripts that only *mention* exit codes, a failure later fixed, a repeated failure, a harness refusal and a background RED run, then `/compact` and a recall question |
 | `niah.mjs` | A multi-haystack needle-in-a-haystack corpus, combining pi's code and hybrid generator with three unrelated prose haystacks. It produces a tagged question bank for live A/B seats. |
 
 ## Results (2026-10-05)
@@ -86,6 +100,11 @@ Telemetry goes to `~/.claude/cache/ctx-suite/telemetry.jsonl`, capped at the las
 
 Compaction cost was about the same in both arms: roughly $0.90 per 370k-token
 compaction.
+
+**Debugging simulation**, one live Sonnet 5.5 pair (`eval/results/debugsim-2026-10-05-sonnet.json`):
+- **Recall after a plain `/compact`:** ctx-suite 10/10, control 9/10. Control lost the background RED test's failure.
+- **Background hold:** `/compact-smart` refused with "waiting on 1 background task" while the RED run was out, then released once its result was read.
+- **Error accounting:** the old text rule would have counted 11% of tool output as errors, against 4% the harness actually flagged.
 
 **Projected savings**, from `replay.py` over 163 sessions in 30 days (82% of that
 spend was cache reads of large contexts):

@@ -11,9 +11,9 @@
 // a stubbed message is rebuilt from role, text and tool blocks (no handle).
 
 import type { SessionMessage } from "claude-code";
-import { estimateTokens, fingerprint, isWriteTool, pathOf } from "./spans.ts";
+import { actionKey, actionLabel, backgroundStart, errorOrigin, estimateTokens, fingerprint, isWriteTool, pathOf } from "./spans.ts";
 
-export type ShapeKind = "error-loop" | "stale" | "superseded" | "duplicate";
+export type ShapeKind = "error-loop" | "resolved" | "stale" | "superseded" | "duplicate";
 
 export interface ShapeOptions {
 	/** Outputs below this many tokens are left alone (except error loops). */
@@ -43,6 +43,8 @@ interface Call {
 	id: string;
 	tool: string;
 	argsKey: string;
+	/** lib/spans.ts actionKey: links a failure to the later runs of the same action. */
+	action: string;
 	path?: string;
 	text: string;
 	tok: number;
@@ -92,6 +94,7 @@ function collectCalls(messages: readonly SessionMessage[]): Call[] {
 				id: u.tool_use_id,
 				tool: u.tool,
 				argsKey: argsKey(u.tool, u.input),
+				action: actionKey(u.tool, u.input),
 				path: pathOf(u.input),
 				text,
 				tok: estimateTokens(text),
@@ -119,6 +122,16 @@ export function planStubs(calls: readonly Call[], resultMsg: ReadonlyMap<string,
 		for (const c of group.slice(0, -1)) {
 			if (shapeable(c)) out.set(c.id, { kind: "error-loop", stub: `[ctx-suite: ${c.tool} failed identically ×${group.length}; the newest failure is kept]` });
 		}
+	}
+
+	// A failure a later run of the same action fixed is history, not the bug at hand.
+	const laterOk = new Set<string>();
+	for (let i = calls.length - 1; i >= 0; i--) {
+		const c = calls[i]!;
+		if (c.isError && !out.has(c.id) && laterOk.has(c.action) && shapeable(c)) {
+			out.set(c.id, { kind: "resolved", stub: `[ctx-suite: this ${c.tool} run failed; a later run of the same action succeeded]` });
+		}
+		if (!c.isError && !backgroundStart(c.text)) laterOk.add(c.action);
 	}
 
 	// One pass builds the newest index of each write path, call and output, so the
@@ -155,7 +168,7 @@ export function planStubs(calls: readonly Call[], resultMsg: ReadonlyMap<string,
 }
 
 export function shapeMessages(messages: readonly SessionMessage[], opt: ShapeOptions): ShapeResult {
-	const byKind: Record<ShapeKind, number> = { "error-loop": 0, stale: 0, superseded: 0, duplicate: 0 };
+	const byKind: Record<ShapeKind, number> = { "error-loop": 0, resolved: 0, stale: 0, superseded: 0, duplicate: 0 };
 	const calls = collectCalls(messages);
 	const resultMsg = new Map<string, number>();
 	messages.forEach((m, i) => {
@@ -198,4 +211,26 @@ export function shapeMessages(messages: readonly SessionMessage[], opt: ShapeOpt
 		};
 	});
 	return { messages: rebuilt, stubbed: stubs.size, byKind, tokensSaved, staleReads: [...staleReads] };
+}
+
+/**
+ * Actions whose newest run in `messages` failed (the harness's refusals aside),
+ * newest first: what the session is most likely debugging. A compaction keeps
+ * their latest error output verbatim, so the work can go on from the summary.
+ */
+export function liveFailures(messages: readonly SessionMessage[], limit = 8): string[] {
+	const last = new Map<string, { isError: boolean; text: string; path?: string; at: number }>();
+	let n = 0;
+	for (const m of messages) {
+		for (const u of m.toolUses) {
+			// a run sent to the background neither fails nor passes here
+			if (u.isError !== true && backgroundStart(u.text ?? "")) continue;
+			last.set(actionKey(u.tool, u.input), { isError: u.isError === true, text: u.text ?? "", path: pathOf(u.input), at: n++ });
+		}
+	}
+	return [...last]
+		.filter(([, v]) => v.isError && errorOrigin(v.text) === "command")
+		.sort((a, b) => b[1].at - a[1].at)
+		.slice(0, limit)
+		.map(([action, v]) => actionLabel(action, v.path));
 }

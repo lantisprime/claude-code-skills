@@ -44,11 +44,12 @@ test("redactBlocks rewrites text and tool_result content, or answers null", () =
 test("spans: classify, staleness, token-weighted health", () => {
 	const spans: Span[] = [{ id: "1", tool: "Read", hash: fingerprint("a"), tok: 300, cls: "fresh", path: "/x.ts", at: 1 }];
 	expect(classify("a", false, fingerprint("a"), spans)).toBe("dup");
-	expect(classify("Process exited with exit code 2", false, "h", spans)).toBe("error");
+	expect(classify("Process exited with exit code 2", false, "h", spans)).toBe("fresh"); // text alone is not a failure
+	expect(classify("Exit code 2", true, "h", spans)).toBe("error"); // the harness's flag is
 	expect(classify("b", false, fingerprint("b"), spans)).toBe("fresh");
 	expect(markStale(spans, "/x.ts", 5)).toBe(1);
 	spans.push({ id: "2", tool: "Bash", hash: "h", tok: 100, cls: "fresh", at: 6 });
-	expect(health(spans)).toEqual({ spans: 2, tokens: 400, share: { fresh: 25, stale: 75, dup: 0, error: 0 }, impurity: 0.75 });
+	expect(health(spans)).toEqual({ spans: 2, tokens: 400, share: { fresh: 25, stale: 75, dup: 0, error: 0, live: 0 }, impurity: 0.75, errors: { resolved: 0, repeated: 0, harness: 0 }, failing: [] });
 });
 
 // --- shaping ---
@@ -82,7 +83,7 @@ const OPT = { dumpTokens: 800, errorLoopMin: 3, protectTokens: 10, protectMessag
 test("shape: stale, error-loop, superseded and duplicate outputs are stubbed; the rest keep their handles", () => {
 	const msgs = convo();
 	const r = shapeMessages(msgs, OPT);
-	expect(r.byKind).toEqual({ "error-loop": 2, stale: 1, superseded: 1, duplicate: 1 });
+	expect(r.byKind).toEqual({ "error-loop": 2, resolved: 0, stale: 1, superseded: 1, duplicate: 1 });
 	expect(r.stubbed).toBe(5);
 	expect(r.tokensSaved).toBeGreaterThan(2_900);
 	const text = (id: string) => r.messages.flatMap((m) => m.toolUses).find((u) => u.tool_use_id === id)?.text ?? "";
