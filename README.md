@@ -21,6 +21,16 @@ Skills are markdown files that act as reusable prompts for Claude Code. When you
 | [Herdr Driver](#herdr-driver) | `/herdr-driver` | Preferred driver: terminals and CLI agents via a private, throwaway Herdr session |
 | [tmux Driver](#tmux-driver) | `/tmux-driver` | Fallback driver: steer CLI agent seats over private per-run tmux sockets |
 
+## Mods
+
+Mods are Claude Code plugins with function hooks (the mod engine, 2.1.288 or later), not slash-command markdown files. Each lives in `mods/<name>/` and has its own README.
+
+| Mod | Description |
+|-----|-------------|
+| [ctx-suite](mods/ctx-suite/README.md) | Context health, secret redaction, task-aware and cost-aware smart compaction, measured savings, and dropping abusive prompts that carry no task content. A port of pi's `context-manager` and `smart-compaction`. |
+
+To load a mod in every project, add its folder to `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json`. Details are in [mods/ctx-suite/README.md](mods/ctx-suite/README.md#install).
+
 ## Installation
 
 ### Global installation (available in all projects)

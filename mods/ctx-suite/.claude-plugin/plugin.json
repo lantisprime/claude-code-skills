@@ -1,0 +1,149 @@
+{
+  "name": "ctx-suite",
+  "version": "0.1.0",
+  "description": "Context health, secret redaction, task-aware compaction shaping and cost-aware smart compaction timing (port of pi's context-manager + smart-compaction).",
+  "author": {
+    "name": "Charlton D. Ho",
+    "url": "https://github.com/lantisprime"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "redact": {
+      "type": "boolean",
+      "title": "Redact secrets in tool results",
+      "description": "Rewrite API keys, tokens, PEM keys and similar in every tool result before it is stored or sent. Permanent in the transcript.",
+      "default": true
+    },
+    "redactPatterns": {
+      "type": "string",
+      "title": "Extra redaction regexes",
+      "description": "Additional JavaScript regex sources, space-separated (write \\s for a space); each scans only the first 64 KiB of a result.",
+      "default": ""
+    },
+    "shapeCompactions": {
+      "type": "boolean",
+      "title": "Shape compaction input",
+      "description": "Stub stale, superseded, duplicate and repeated-failure tool outputs before a compaction summarizes them, when its prompt cache is cold (on a hot cache stubs cost more than they save, so stale reads are named in the instructions instead). The newest ~40k tokens are never touched.",
+      "default": true
+    },
+    "smartTiming": {
+      "type": "boolean",
+      "title": "Smart compaction timing",
+      "description": "After a turn, at idle, compact when the cost engine and relevance judge say it pays.",
+      "default": true
+    },
+    "idleSeconds": {
+      "type": "number",
+      "title": "Idle seconds before evaluating",
+      "description": "Quiet time after a turn before a smart-compaction evaluation (5-600).",
+      "default": 20
+    },
+    "qualityLine": {
+      "type": "number",
+      "title": "Fire line (fraction of window)",
+      "description": "Context fill at which compaction becomes rational (0.2-0.9).",
+      "default": 0.5
+    },
+    "reserveTokens": {
+      "type": "number",
+      "title": "Overflow reserve tokens",
+      "description": "Tokens below the window treated as the overflow line, for warnings and the regrowth horizon.",
+      "default": 33000
+    },
+    "judgeEnabled": {
+      "type": "boolean",
+      "title": "Relevance judge: enabled",
+      "description": "Ask a Claude model whether the old context is still needed; off uses the keyword heuristic.",
+      "default": true
+    },
+    "judgeModel": {
+      "type": "string",
+      "title": "Relevance judge: model",
+      "description": "Model alias or id for the judge.",
+      "default": "claude-sonnet-5-5"
+    },
+    "judgeEffort": {
+      "type": "string",
+      "title": "Relevance judge: effort",
+      "description": "Thinking effort for the judge call.",
+      "default": "low",
+      "options": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "judgeTimeoutMs": {
+      "type": "number",
+      "title": "Relevance judge: timeout ms",
+      "description": "Abandon the judge call after this long (1000-60000); the heuristic answers instead.",
+      "default": 15000
+    },
+    "judgeMaxExcerptChars": {
+      "type": "number",
+      "title": "Relevance judge: max excerpt chars",
+      "description": "Most characters of redacted conversation sent to the judge (500-20000).",
+      "default": 4000
+    },
+    "judgeMaxOutputTokens": {
+      "type": "number",
+      "title": "Relevance judge: max output tokens",
+      "description": "Reply cap for the judge (64-1024).",
+      "default": 256
+    },
+    "judgeMaxCallsPerHour": {
+      "type": "number",
+      "title": "Relevance judge: max calls per hour",
+      "description": "Rolling-hour cap on judge calls (0-60); past it the heuristic answers.",
+      "default": 6
+    },
+    "aggressiveBelow": {
+      "type": "number",
+      "title": "Gate: aggressive below p",
+      "description": "A relevance probability below this compacts aggressively.",
+      "default": 0.35
+    },
+    "deferAbove": {
+      "type": "number",
+      "title": "Gate: defer above p",
+      "description": "A relevance probability above this defers the compaction.",
+      "default": 0.7
+    },
+    "allowAggressive": {
+      "type": "boolean",
+      "title": "Gate: allow aggressive compaction",
+      "description": "Off: an aggressive verdict compacts as focused instead.",
+      "default": true
+    },
+    "fallbackMayBeAggressive": {
+      "type": "boolean",
+      "title": "Gate: heuristic may be aggressive",
+      "description": "Let the keyword heuristic (used when the judge fails) trigger an aggressive compaction.",
+      "default": false
+    },
+    "driftToast": {
+      "type": "boolean",
+      "title": "Task-switch drift toast",
+      "description": "Toast when a prompt looks unrelated to the active tasks in a full context.",
+      "default": true
+    },
+    "dropAbusive": {
+      "type": "boolean",
+      "title": "Drop abusive prompts",
+      "description": "Drop a prompt that is only insults, slurs or hostile profanity, with no task content, before it enters the session: it never reaches the model's context or the transcript. A local word list flags candidates; Haiku confirms the unclear ones. Negative feedback without abuse (\"no, wrong again\") always goes through.",
+      "default": true
+    },
+    "scrubHistory": {
+      "type": "boolean",
+      "title": "Remove dropped prompts from input history",
+      "description": "Also remove a dropped prompt from Claude Code's up-arrow history (~/.claude/history.jsonl), which records it before any hook runs. The file is rewritten whole, after checking nothing was appended since it was read; a session writing in that instant can still lose its line. Stops working once the file passes 4 MiB.",
+      "default": true
+    },
+    "telemetry": {
+      "type": "boolean",
+      "title": "Telemetry log",
+      "description": "Write decisions to ~/.claude/cache/ctx-suite/telemetry.jsonl (redacted, last 2000 lines).",
+      "default": true
+    }
+  }
+}

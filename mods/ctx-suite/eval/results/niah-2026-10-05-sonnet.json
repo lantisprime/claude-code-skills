@@ -1,0 +1,772 @@
+{
+ "run": "niah multi-haystack, 1 pair",
+ "date": "2026-10-05",
+ "model": "Sonnet 5.5 (claude --model sonnet)",
+ "seed": 20261005,
+ "driver": "private herdr session, lockstep prompts (prompts.json), plain /compact, recall from conversation only",
+ "deviations": [
+  "TaskCreate/TaskUpdate/TodoWrite unavailable in both arms: no task board; task named only in the first prompt",
+  "task turn landed after the docs read, identically in both arms"
+ ],
+ "compaction": {
+  "control": {
+   "preTokens": 366295,
+   "postTokens": 5820,
+   "summaryChars": 6993,
+   "approxCostUSD": 0.18
+  },
+  "treatment": {
+   "preTokens": 366062,
+   "postTokens": 7030,
+   "summaryChars": 11806,
+   "approxCostUSD": 0.89,
+   "stubbed": 2,
+   "stubKinds": {
+    "superseded": 2
+   },
+   "tokensSaved": 4588,
+   "summarizerUsage": {
+    "input_tokens": 36538,
+    "output_tokens": 5604,
+    "cache_read_input_tokens": 27355,
+    "cache_creation_input_tokens": 295372
+   }
+  }
+ },
+ "scores": {
+  "control": {
+   "meta": {
+    "seed": 20261005,
+    "scoredAt": "2026-10-05T04:08:49.198Z"
+   },
+   "perKind": {
+    "fact": {
+     "pass": 0,
+     "total": 24
+    },
+    "location": {
+     "pass": 6,
+     "total": 6
+    },
+    "crossref": {
+     "pass": 0,
+     "total": 6
+    },
+    "detail": {
+     "pass": 0,
+     "total": 1
+    }
+   },
+   "total": {
+    "pass": 6,
+    "of": 37,
+    "rate": 0.162
+   },
+   "questions": [
+    {
+     "id": "C-codec-lzw",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "C-auth-jwt",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "C-net-ratelimit",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "C-archive-tar",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "C-ds-heap",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "C-text-diff",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "F-codec-lzw",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/codec-lzw.ts"
+    },
+    {
+     "id": "F-auth-jwt",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/auth-jwt.ts"
+    },
+    {
+     "id": "F-net-ratelimit",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/net-ratelimit.ts"
+    },
+    {
+     "id": "F-archive-tar",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/archive-tar.ts"
+    },
+    {
+     "id": "F-ds-heap",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/ds-heap.ts"
+    },
+    {
+     "id": "F-text-diff",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/text-diff.ts"
+    },
+    {
+     "id": "X-req-verifyJwtKeyStamp",
+     "kind": "crossref",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "X-dec-sweepRateLimiterBuckets",
+     "kind": "crossref",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "X-milestone-extractTarMemberStream",
+     "kind": "crossref",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "X-req-lzw-width",
+     "kind": "crossref",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "X-fn-REQ-233",
+     "kind": "crossref",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "X-detail-D-21",
+     "kind": "detail",
+     "pass": false,
+     "hits": 0,
+     "of": 3,
+     "given": "unknown"
+    },
+    {
+     "id": "X-fn-REQ-402",
+     "kind": "crossref",
+     "pass": false,
+     "hits": 0,
+     "of": 2,
+     "given": "unknown"
+    },
+    {
+     "id": "O1",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O2",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O3",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O4",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O5",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O6",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K1",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K2",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K3",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K4",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K5",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K6",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A1",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A2",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A3",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A4",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A5",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A6",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    }
+   ]
+  },
+  "treatment": {
+   "meta": {
+    "seed": 20261005,
+    "scoredAt": "2026-10-05T04:08:49.358Z"
+   },
+   "perKind": {
+    "fact": {
+     "pass": 6,
+     "total": 24
+    },
+    "location": {
+     "pass": 6,
+     "total": 6
+    },
+    "crossref": {
+     "pass": 6,
+     "total": 6
+    },
+    "detail": {
+     "pass": 1,
+     "total": 1
+    }
+   },
+   "total": {
+    "pass": 19,
+    "of": 37,
+    "rate": 0.514
+   },
+   "questions": [
+    {
+     "id": "C-codec-lzw",
+     "kind": "fact",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "19"
+    },
+    {
+     "id": "C-auth-jwt",
+     "kind": "fact",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "47"
+    },
+    {
+     "id": "C-net-ratelimit",
+     "kind": "fact",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "91000"
+    },
+    {
+     "id": "C-archive-tar",
+     "kind": "fact",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "7168"
+    },
+    {
+     "id": "C-ds-heap",
+     "kind": "fact",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "0.31"
+    },
+    {
+     "id": "C-text-diff",
+     "kind": "fact",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "23"
+    },
+    {
+     "id": "F-codec-lzw",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/codec-lzw.ts"
+    },
+    {
+     "id": "F-auth-jwt",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/auth-jwt.ts"
+    },
+    {
+     "id": "F-net-ratelimit",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/net-ratelimit.ts"
+    },
+    {
+     "id": "F-archive-tar",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/archive-tar.ts"
+    },
+    {
+     "id": "F-ds-heap",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/ds-heap.ts"
+    },
+    {
+     "id": "F-text-diff",
+     "kind": "location",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "platform/src/text-diff.ts"
+    },
+    {
+     "id": "X-req-verifyJwtKeyStamp",
+     "kind": "crossref",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "REQ-114"
+    },
+    {
+     "id": "X-dec-sweepRateLimiterBuckets",
+     "kind": "crossref",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "D-9"
+    },
+    {
+     "id": "X-milestone-extractTarMemberStream",
+     "kind": "crossref",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "M2"
+    },
+    {
+     "id": "X-req-lzw-width",
+     "kind": "crossref",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "REQ-077"
+    },
+    {
+     "id": "X-fn-REQ-233",
+     "kind": "crossref",
+     "pass": true,
+     "hits": 1,
+     "of": 1,
+     "given": "sweepRateLimiterBuckets"
+    },
+    {
+     "id": "X-detail-D-21",
+     "kind": "detail",
+     "pass": true,
+     "hits": 3,
+     "of": 3,
+     "given": "7168-byte blocks, to match the cold-storage appliance sector size (avoids read-m"
+    },
+    {
+     "id": "X-fn-REQ-402",
+     "kind": "crossref",
+     "pass": true,
+     "hits": 2,
+     "of": 2,
+     "given": "REQ-402 binds QUAT_NORM_EPSILON to slerpWithNudge"
+    },
+    {
+     "id": "O1",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O2",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O3",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O4",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O5",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "O6",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K1",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K2",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K3",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K4",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K5",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "K6",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A1",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A2",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A3",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A4",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A5",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    },
+    {
+     "id": "A6",
+     "kind": "fact",
+     "pass": false,
+     "hits": 0,
+     "of": 1,
+     "given": "unknown"
+    }
+   ]
+  }
+ },
+ "answers": {
+  "control": {
+   "C-codec-lzw": "unknown",
+   "C-auth-jwt": "unknown",
+   "C-net-ratelimit": "unknown",
+   "C-archive-tar": "unknown",
+   "C-ds-heap": "unknown",
+   "C-text-diff": "unknown",
+   "F-codec-lzw": "platform/src/codec-lzw.ts",
+   "F-auth-jwt": "platform/src/auth-jwt.ts",
+   "F-net-ratelimit": "platform/src/net-ratelimit.ts",
+   "F-archive-tar": "platform/src/archive-tar.ts",
+   "F-ds-heap": "platform/src/ds-heap.ts",
+   "F-text-diff": "platform/src/text-diff.ts",
+   "X-req-verifyJwtKeyStamp": "unknown",
+   "X-dec-sweepRateLimiterBuckets": "unknown",
+   "X-milestone-extractTarMemberStream": "unknown",
+   "X-req-lzw-width": "unknown",
+   "X-fn-REQ-233": "unknown",
+   "X-detail-D-21": "unknown",
+   "X-fn-REQ-402": "unknown",
+   "O1": "unknown",
+   "O2": "unknown",
+   "O3": "unknown",
+   "O4": "unknown",
+   "O5": "unknown",
+   "O6": "unknown",
+   "K1": "unknown",
+   "K2": "unknown",
+   "K3": "unknown",
+   "K4": "unknown",
+   "K5": "unknown",
+   "K6": "unknown",
+   "A1": "unknown",
+   "A2": "unknown",
+   "A3": "unknown",
+   "A4": "unknown",
+   "A5": "unknown",
+   "A6": "unknown"
+  },
+  "treatment": {
+   "C-codec-lzw": "19",
+   "C-auth-jwt": "47",
+   "C-net-ratelimit": "91000",
+   "C-archive-tar": "7168",
+   "C-ds-heap": "0.31",
+   "C-text-diff": "23",
+   "F-codec-lzw": "platform/src/codec-lzw.ts",
+   "F-auth-jwt": "platform/src/auth-jwt.ts",
+   "F-net-ratelimit": "platform/src/net-ratelimit.ts",
+   "F-archive-tar": "platform/src/archive-tar.ts",
+   "F-ds-heap": "platform/src/ds-heap.ts",
+   "F-text-diff": "platform/src/text-diff.ts",
+   "X-req-verifyJwtKeyStamp": "REQ-114",
+   "X-dec-sweepRateLimiterBuckets": "D-9",
+   "X-milestone-extractTarMemberStream": "M2",
+   "X-req-lzw-width": "REQ-077",
+   "X-fn-REQ-233": "sweepRateLimiterBuckets",
+   "X-detail-D-21": "7168-byte blocks, to match the cold-storage appliance sector size (avoids read-modify-write amplification)",
+   "X-fn-REQ-402": "REQ-402 binds QUAT_NORM_EPSILON to slerpWithNudge",
+   "O1": "unknown",
+   "O2": "unknown",
+   "O3": "unknown",
+   "O4": "unknown",
+   "O5": "unknown",
+   "O6": "unknown",
+   "K1": "unknown",
+   "K2": "unknown",
+   "K3": "unknown",
+   "K4": "unknown",
+   "K5": "unknown",
+   "K6": "unknown",
+   "A1": "unknown",
+   "A2": "unknown",
+   "A3": "unknown",
+   "A4": "unknown",
+   "A5": "unknown",
+   "A6": "unknown"
+  }
+ }
+}
