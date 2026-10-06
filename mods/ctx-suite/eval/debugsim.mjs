@@ -10,6 +10,9 @@
  *   harness   an Edit of a file not read first (Claude Code refuses it)
  *   background a slow RED test sent to the background: no ctx-suite compaction
  *             may run until its result is back and read (@SMART probes it)
+ *   stopped   a wait loop sent to the background, then stopped with TaskStop: a stopped
+ *             shell sends no notification, so the stop itself must release the hold,
+ *             and a stop is not a failure (@SMART probes it; @HEALTH names no wait loop)
  *   not an error: shell scripts and a runbook that merely say `exit 1` / `exit code 3`
  * Then filler, a plain /compact, and a recall question about the live failure:
  * can the session go on debugging from the summary alone?
@@ -81,6 +84,11 @@ write("scripts/slow-red.js", `setTimeout(() => {
 }, 45000);
 `);
 
+// --- a wait loop that never finishes on its own: it is stopped with TaskStop ---
+write("scripts/wait-loop.js", `const until = Date.now() + 3600000;
+const t = setInterval(() => { if (Date.now() > until) { clearInterval(t); console.log("WAIT_DONE"); } }, 60000);
+`);
+
 // --- a file for the harness refusal (edited before it is read) ---
 write("src/config.js", `module.exports = {
   retries: 3,
@@ -115,6 +123,10 @@ const prompts = [
 	"@SMART",
 	"@WAITBG",
 	"@SMART",
+	"INSTRUCTION: Start this with the Bash tool in the background (set run_in_background to true) and do not wait for it: node scripts/wait-loop.js — it is a wait loop." + reply("started"),
+	"@SMART",
+	"INSTRUCTION: Stop that wait loop now with the TaskStop tool, using its task id. Do not start anything else." + reply("stopped"),
+	"@SMART",
 	"INSTRUCTION: Without reading it first, use the Edit tool on src/config.js to replace the exact text `backoffMs: 250` with `backoffMs: 500`. If that is refused, Read src/config.js and then make that same Edit." + reply("done"),
 	"INSTRUCTION: Read docs/arch-1.md, docs/arch-2.md and docs/arch-3.md in full with the Read tool." + reply("read"),
 	"INSTRUCTION: Read docs/arch-4.md, docs/arch-5.md and docs/arch-6.md in full with the Read tool." + reply("read"),
@@ -133,6 +145,10 @@ const expect = {
 	lint_error: ["LINT_E042", "adapter.js:7"],
 	build_status: ["yes"],
 	red_test: ["RED_PENDING", "test_ingest_retry.js:31"],
+	// what each @SMART reply must match, in order (checked by the driver, not answers.json)
+	smart: ["waiting on 1 background task", "^(?!.*waiting on)", "waiting on 1 background task", "^(?!.*waiting on)"],
+	// @HEALTH must not name the stopped wait loop as running or failing
+	health_excludes: ["wait-loop.js"],
 };
 fs.writeFileSync(path.join(out, "prompts.json"), JSON.stringify(prompts, null, 1));
 fs.writeFileSync(path.join(out, "expect.json"), JSON.stringify(expect, null, 1));

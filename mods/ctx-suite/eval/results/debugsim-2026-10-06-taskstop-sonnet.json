@@ -1,0 +1,23 @@
+{
+ "run": "debug-session simulation, background-hold steps only (1 treatment seat)",
+ "date": "2026-10-06",
+ "model": "Sonnet 5.5 (claude --model sonnet), Claude Code 2.1.288",
+ "generator": "mods/ctx-suite/eval/debugsim.mjs (prompts 0, 5, 9, 11 and the @SMART/@HEALTH probes; file reads, /compact and recall skipped: this change does not touch them)",
+ "driver": "private herdr session (herdr 0.9.3)",
+ "compactSmart": [
+  "ctx-suite: no compaction — waiting on 1 background task (bl080fbof) until its result is read",
+  "ctx-suite: no compaction — waiting on 2 background tasks (bl080fbof, bugulk74b) until their result is read",
+  "ctx-suite: no compaction — waiting on 1 background task (bl080fbof) until its result is read",
+  "ctx-suite: no compaction — below window-floor (46604 < 150000)"
+ ],
+ "seat": "⏺ Stop Task ⎿ node scripts/wait-loop.js · stopped",
+ "telemetry": [
+  {"event": "background-started", "id": "bl080fbof", "tool": "Bash"},
+  {"event": "background-started", "id": "bugulk74b", "tool": "Bash"},
+  {"event": "background-done", "id": "bugulk74b", "stopped": true},
+  {"event": "background-done", "id": "bl080fbof", "failed": true}
+ ],
+ "health": ["errors: … — still failing: node scripts/slow-red.js", "background: none"],
+ "result": "pass: the TaskStop released the wait loop's hold with no notification; the stopped loop is not named as failing; the real RED failure still is",
+ "note": "the third probe ran before the 45 s RED run reported back, so it still held on bl080fbof, as it should"
+}

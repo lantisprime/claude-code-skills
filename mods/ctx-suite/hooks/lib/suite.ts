@@ -246,7 +246,6 @@ export class Suite {
 		return `${MARK} ${focusInstructions(action, subjects)} Tool outputs replaced by "[ctx-suite: …]" stubs are stale, superseded, duplicated or repeated failures: do not carry them forward.`;
 	}
 
-	/** A tool result that sent work to the background: hold compactions until its notification is in. */
 	/** A successful tool result that sent work to the background: hold compactions until its notification is in. */
 	private noteBackground(tool: string, input: Record<string, unknown>, text: string, isError: boolean, now: number): string | undefined {
 		if (isError || (tool !== "Bash" && tool !== "Agent" && tool !== "Task")) return undefined;
@@ -256,6 +255,22 @@ export class Suite {
 		this.rt.backgroundLabels = { ...(this.rt.backgroundLabels ?? {}), [id]: actionLabel(this.action(tool, input)) };
 		this.record("background-started", { id, tool });
 		return id;
+	}
+
+	/**
+	 * A successful stop of a background task: a stopped shell sends no notification, so the stop releases
+	 * its hold. The id comes from the call's fields, never its text. A stop is no failure, nor clears one.
+	 */
+	private noteStop(input: Record<string, unknown>, result: unknown, isError: boolean): void {
+		if (isError) return;
+		const held = this.rt.background ?? {};
+		const id = [input.task_id, input.shell_id, (result as { task_id?: unknown } | undefined)?.task_id].find((v): v is string => typeof v === "string" && v in held);
+		if (id === undefined) return;
+		const { [id]: _at, ...bg } = held;
+		const { [id]: _label, ...labels } = this.rt.backgroundLabels ?? {};
+		this.rt.background = bg;
+		this.rt.backgroundLabels = labels;
+		this.record("background-done", { id, stopped: true });
 	}
 
 	/** The action key, redacted: it is kept in state and may reach the summarizer's instructions. */
@@ -268,10 +283,10 @@ export class Suite {
 		const bg = { ...(this.rt.background ?? {}) };
 		const labels = { ...(this.rt.backgroundLabels ?? {}) };
 		// a RED run sent to the background fails in its notification, not in a tool result;
-		// only the harness's own status and summary say so, never the output it quotes
+		// only the harness's own status and summary say so, never the output it quotes; killed is a stop, not a failure
 		const status = /<status>([^<]*)<\/status>/i.exec(text)?.[1] ?? "";
 		const summary = /<summary>([^<]*)<\/summary>/i.exec(text)?.[1] ?? "";
-		const failed = /^(?:failed|killed|error)$/i.test(status.trim()) || /exit code [1-9]\d*/i.test(summary);
+		const failed = /^(?:failed|error)$/i.test(status.trim()) || /exit code [1-9]\d*/i.test(summary);
 		for (const m of text.matchAll(/<task-id>([^<]+)<\/task-id>/g)) {
 			const id = m[1]!.trim();
 			if (id in bg) {
@@ -298,7 +313,9 @@ export class Suite {
 	onToolResult(tool: string, id: string, input: Record<string, unknown>, rawText: string, isError: boolean, result: unknown, now: number): void {
 		const text = redactText(rawText, this.custom).text;
 		const bg = this.noteBackground(tool, input, text, isError, now);
+		if (tool === "TaskStop" || tool === "KillShell") this.noteStop(input, result, isError);
 		// the same action passing in the foreground settles a background failure of it
+		// (a stop's label, `TaskStop …`, never matches a failing command's, so a stop settles nothing)
 		if (!isError && !bg && this.rt.backgroundFailing?.length) {
 			const label = actionLabel(this.action(tool, input));
 			this.rt.backgroundFailing = this.rt.backgroundFailing.filter((l) => l !== label);

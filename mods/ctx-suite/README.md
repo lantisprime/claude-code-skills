@@ -36,7 +36,7 @@ explicitly.
 
   Only the last three are dead weight (`e` in the status line).
 
-**Background tasks.** A shell command or agent sent to the background holds every compaction ctx-suite starts, idle or `/compact-smart`, until its result has been delivered and read. A background task that fails, such as a RED test run, is named as still failing until the same command passes.
+**Background tasks.** A shell command or agent sent to the background holds every compaction ctx-suite starts, idle or `/compact-smart`, until its result has been delivered and read, or it is stopped with `TaskStop` or `KillShell` (a stopped shell sends no notification, so the stop itself releases the hold). A background task that fails, such as a RED test run, is named as still failing until the same command passes. A stopped one is not a failure.
 
 **Staleness.** After each turn, 20 read files are checked for outside edits,
 rotating through all of them. A compaction checks every read file, up to the
@@ -89,7 +89,7 @@ Telemetry goes to `~/.claude/cache/ctx-suite/telemetry.jsonl`, capped at the las
 | --- | --- |
 | `baseline.py` | Per-session context size per request, the live share of tool output, and token and USD consumption. `--with-ctx-suite` and `--without-ctx-suite` split sessions using `sessions.txt`. |
 | `replay.py` | Projected savings: replays baseline sessions request by request as if smart compaction had run. Takes `--fire` for the fire lines and `--json` for an output file. |
-| `debugsim.mjs` | A debugging-session simulation: a live failing test, scripts that only *mention* exit codes, a failure later fixed, a repeated failure, a harness refusal and a background RED run, then `/compact` and a recall question |
+| `debugsim.mjs` | A debugging-session simulation: a live failing test, scripts that only *mention* exit codes, a failure later fixed, a repeated failure, a harness refusal, a background RED run and a background wait loop stopped with `TaskStop`, then `/compact` and a recall question |
 | `weekly.py` | The last 7 days against the 30-day baseline: requests per prompt, context per request, subagent share of cost and measured savings. No model calls. A launchd job runs it every Monday (see below). |
 | `niah.mjs` | A multi-haystack needle-in-a-haystack corpus, combining pi's code and hybrid generator with three unrelated prose haystacks. It produces a tagged question bank for live A/B seats. |
 

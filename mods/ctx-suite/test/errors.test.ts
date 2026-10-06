@@ -191,3 +191,50 @@ test("review 8 + 9: non-Bash labels say what the call was about; quoted harness 
 	s.onToolResult("Agent", "a1", { description: "review the parser", prompt: "long prompt" }, "Async agent launched successfully.\nagentId: ag1", false, undefined, 1);
 	expect(s.rt.backgroundLabels?.ag1).toBe("Agent review the parser");
 });
+
+// --- 2026-10-06: a stopped background shell sends no task-notification ---
+
+const stopped = (id: string) => `{"message":"Successfully stopped task: ${id} (sleep 3600)","task_id":"${id}","task_type":"local_bash","command":"sleep 3600"}`;
+
+test("a successful TaskStop releases the hold; a failed one, or one naming no held task, changes nothing", () => {
+	const s = new Suite(loadConfig({}));
+	s.onToolResult("Bash", "w1", { command: "sleep 3600" }, "Command running in background with ID: wt1", false, undefined, 1);
+	s.onToolResult("Bash", "w2", { command: "sleep 3601" }, "Command running in background with ID: wt2", false, undefined, 2);
+	s.onToolResult("TaskStop", "k0", { task_id: "wt1" }, "<tool_use_error>No task found with ID: wt1</tool_use_error>", true, undefined, 3);
+	s.onToolResult("TaskStop", "k1", { task_id: "zz0" }, stopped("zz0"), false, { task_id: "zz0" }, 4);
+	expect(s.backgroundPending(10)).toEqual(["wt1", "wt2"]);
+	s.onToolResult("TaskStop", "k2", { task_id: "wt1" }, stopped("wt1"), false, { task_id: "wt1", task_type: "local_bash" }, 5);
+	// the deprecated shell_id, and an id taken from the structured result alone
+	s.onToolResult("KillShell", "k3", { shell_id: "wt2" }, "Successfully killed shell: wt2", false, undefined, 6);
+	expect(s.backgroundPending(10)).toEqual([]);
+	expect(s.rt.backgroundLabels).toEqual({});
+	expect(s.rt.backgroundFailing ?? []).toEqual([]);
+	s.onToolResult("Bash", "w3", { command: "sleep 3602" }, "Command running in background with ID: wt3", false, undefined, 7);
+	s.onToolResult("TaskStop", "k4", {}, stopped("wt3"), false, { task_id: "wt3" }, 8);
+	expect(s.backgroundPending(10)).toEqual([]);
+	// the input names a task no longer held, the result the held one: the held one is released
+	s.onToolResult("Bash", "w4", { command: "sleep 3603" }, "Command running in background with ID: wt4", false, undefined, 9);
+	s.onToolResult("TaskStop", "k5", { task_id: "gone1" }, stopped("wt4"), false, { task_id: "wt4" }, 10);
+	expect(s.backgroundPending(11)).toEqual([]);
+});
+
+test("a stop is not a failure: a killed notification names nothing, and a stop never clears a real failure", () => {
+	const s = new Suite(loadConfig({}));
+	// a background agent stopped on purpose: its notification says killed, and may come before the stop's result
+	s.onToolResult("Agent", "a1", { description: "review the plan", prompt: "p" }, "Async agent launched successfully.\nagentId: ag1", false, undefined, 1);
+	s.onTaskNotification("<task-notification><task-id>ag1</task-id><status>killed</status><summary>Agent \"review the plan\" was stopped</summary></task-notification>");
+	s.onToolResult("TaskStop", "k1", { task_id: "ag1" }, stopped("ag1"), false, { task_id: "ag1", task_type: "local_agent" }, 2);
+	expect(s.backgroundPending(10)).toEqual([]);
+	expect(s.rt.backgroundFailing ?? []).toEqual([]);
+	// a killed notification with no TaskStop seen first is not a failure either
+	s.onToolResult("Bash", "b1", { command: "sleep 3600" }, "Command running in background with ID: bk1", false, undefined, 3);
+	s.onTaskNotification("<task-notification><task-id>bk1</task-id><status>killed</status></task-notification>");
+	expect(s.rt.backgroundFailing ?? []).toEqual([]);
+	// a RED run that failed, then a stop of the same id: the failure stays named
+	s.onToolResult("Bash", "r1", { command: "node scripts/slow-red.js" }, "Command running in background with ID: red1", false, undefined, 4);
+	s.onTaskNotification('<task-notification><task-id>red1</task-id><status>completed</status><summary>Background command "node scripts/slow-red.js" completed (exit code 1)</summary></task-notification>');
+	s.onToolResult("TaskStop", "k2", { task_id: "red1" }, stopped("red1"), false, { task_id: "red1" }, 5);
+	expect(s.rt.backgroundFailing).toEqual(["node scripts/slow-red.js"]);
+	expect(health(s.rt.spans).failing).toEqual([]); // the TaskStop result itself is no error and no background start
+	expect(s.rt.spans.at(-1)?.bg).toBeUndefined();
+});
