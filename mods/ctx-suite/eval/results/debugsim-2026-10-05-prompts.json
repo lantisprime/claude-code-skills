@@ -1,0 +1,17 @@
+[
+ "This is a debugging session. Your task: fix the failing test in test/checksum.test.js. Do NOT fix or edit anything until an instruction explicitly says so. Follow each instruction exactly and keep replies minimal. Reply with exactly: ready",
+ "INSTRUCTION: Run this with the Bash tool: node --test test/checksum.test.js \u2014 do not fix anything. Reply with exactly: ran",
+ "INSTRUCTION: Read scripts/deploy.sh, scripts/release.sh and docs/runbook.md in full with the Read tool. Reply with exactly: read",
+ "INSTRUCTION: Run with Bash: node scripts/build.js (it is expected to fail). Then run with Bash: mkdir -p dist. Then run with Bash: node scripts/build.js again. Reply with exactly: done",
+ "INSTRUCTION: Run with Bash, as three separate Bash calls: node scripts/lint.js \u2014 do not fix anything. Reply with exactly: done",
+ "INSTRUCTION: Start this with the Bash tool in the background (set run_in_background to true) and do not wait for it: node scripts/slow-red.js \u2014 it is a RED test, expected to fail. Reply with exactly: started",
+ "@SMART",
+ "@WAITBG",
+ "@SMART",
+ "INSTRUCTION: Without reading it first, use the Edit tool on src/config.js to replace the exact text `backoffMs: 250` with `backoffMs: 500`. If that is refused, Read src/config.js and then make that same Edit. Reply with exactly: done",
+ "INSTRUCTION: Read docs/arch-1.md, docs/arch-2.md and docs/arch-3.md in full with the Read tool. Reply with exactly: read",
+ "INSTRUCTION: Read docs/arch-4.md, docs/arch-5.md and docs/arch-6.md in full with the Read tool. Reply with exactly: read",
+ "@HEALTH",
+ "/compact",
+ "INSTRUCTION (recall \u2014 do NOT run, read or open anything; answer only from this conversation): Write ONE JSON object to the file answers.json with the Write tool, with these keys: \"failing_command\" (the exact command that reproduces the current test failure), \"error_code\" (the error's uppercase code word), \"expected\", \"actual\", \"location\" (file:line from the error), \"seed\", \"modulus\" (the modulus the error reports), \"lint_error\" (the lint error's code and file:line), \"build_status\" (does node scripts/build.js pass now: yes/no), \"red_test\" (the background RED test's error code and test file:line). Use \"unknown\" for anything you do not know. Reply with exactly: answers written"
+]

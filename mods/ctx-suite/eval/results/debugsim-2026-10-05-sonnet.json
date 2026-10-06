@@ -1,0 +1,111 @@
+{
+ "run": "debug-session simulation, 1 pair",
+ "date": "2026-10-05",
+ "model": "Sonnet 5.5 (claude --model sonnet)",
+ "generator": "mods/ctx-suite/eval/debugsim.mjs",
+ "driver": "private herdr session, lockstep prompts, plain /compact, recall from the conversation only",
+ "treatmentStatusLineByStep": [
+  "\u26a0 ctx-suite: ctx f0 s0 d0 e0 L0 CH60 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f0 s0 d0 e0 L100 CH96 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f60 s0 d0 e0 L40 CH93 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f60 s0 d0 e0 L39 CH100 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f59 s0 d0 e1 L39 CH99 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f60 s0 d0 e1 L38 CH99 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f61 s0 d0 e1 L38 CH99 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f92 s0 d0 e0 L8 CH81 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f96 s0 d0 e0 L4 CH86 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f0 s0 d0 e0 L0 CH86 \u00b7 sc idle",
+  "\u26a0 ctx-suite: ctx f100 s0 d0 e0 L0 CH80 \u00b7 sc idle"
+ ],
+ "compactSmart": [
+  "ctx-suite: no compaction \u2014 waiting on 1 background task (bfuffa7ai) until its result is read",
+  "ctx-suite: no compaction \u2014 below window-floor (57032 < 150000)"
+ ],
+ "compaction": {
+  "failingNamed": 2,
+  "resolvedStubsWithheld": 1,
+  "cacheHot": true
+ },
+ "arms": {
+  "control": {
+   "score": "9/10",
+   "missed": [
+    "red_test"
+   ],
+   "answers": {
+    "failing_command": "node --test test/checksum.test.js",
+    "error_code": "CHECKSUM_MISMATCH",
+    "expected": 4217,
+    "actual": 4574,
+    "location": "src/checksum.js:11",
+    "seed": "0x5a17",
+    "modulus": 9937,
+    "lint_error": "LINT_E042 src/legacy/adapter.js:7",
+    "build_status": "yes",
+    "red_test": "unknown"
+   },
+   "summaryChars": 7771,
+   "summaryHasVerbatimError": true,
+   "toolsAfterCompaction": [
+    "Write"
+   ]
+  },
+  "treatment": {
+   "score": "10/10",
+   "missed": [],
+   "answers": {
+    "failing_command": "node --test test/checksum.test.js",
+    "error_code": "CHECKSUM_MISMATCH",
+    "expected": "4217",
+    "actual": "4574",
+    "location": "src/checksum.js:11",
+    "seed": "0x5a17",
+    "modulus": "9937",
+    "lint_error": "LINT_E042 src/legacy/adapter.js:7",
+    "build_status": "yes",
+    "red_test": "RED_PENDING tests/test_ingest_retry.js:31"
+   },
+   "summaryChars": 8881,
+   "summaryHasVerbatimError": true,
+   "toolsAfterCompaction": [
+    "Write"
+   ],
+   "oldRuleErrorShare": 11,
+   "harnessFlaggedShare": 4
+  }
+ },
+ "expect": {
+  "failing_command": [
+   "node --test test/checksum.test.js"
+  ],
+  "error_code": [
+   "CHECKSUM_MISMATCH"
+  ],
+  "expected": [
+   "4217"
+  ],
+  "actual": [
+   "4574"
+  ],
+  "location": [
+   "src/checksum.js:11"
+  ],
+  "seed": [
+   "0x5a17"
+  ],
+  "modulus": [
+   "9937"
+  ],
+  "lint_error": [
+   "LINT_E042",
+   "adapter.js:7"
+  ],
+  "build_status": [
+   "yes"
+  ],
+  "red_test": [
+   "RED_PENDING",
+   "test_ingest_retry.js:31"
+  ]
+ }
+}

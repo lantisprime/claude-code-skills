@@ -1,0 +1,398 @@
+{
+ "run": "niah multi-haystack re-run after fixes c6aee54, 2 pairs",
+ "date": "2026-10-05",
+ "model": "Sonnet 5.5 (claude --model sonnet)",
+ "driver": "private herdr session drv-ctxsuite-niah2, 4 seats, lockstep prompts per pair, plain /compact, recall from conversation only, /ctx-health after recall (treatment)",
+ "notes": [
+  "seeds vary only the haystack filler text; needle answers are identical across seeds",
+  "first prompt states the task directly (no TaskCreate): exercises the prompt-subject fallback",
+  "compaction cost = footer $ delta across /compact, sampled every 5 s"
+ ],
+ "pairs": {
+  "20261006": {
+   "scores": {
+    "code": {
+     "control": "10/12",
+     "treatment": "12/12"
+    },
+    "hybrid": {
+     "control": "5/7",
+     "treatment": "7/7"
+    },
+    "prose": {
+     "control": "0/18",
+     "treatment": "18/18"
+    },
+    "relevant": {
+     "control": "15/19",
+     "treatment": "19/19"
+    },
+    "unrelated": {
+     "control": "0/18",
+     "treatment": "18/18"
+    }
+   },
+   "compaction": {
+    "control": {
+     "preTokens": 367369,
+     "postTokens": 6040,
+     "summaryChars": 7811,
+     "toolsAfterCompaction": [
+      "Write"
+     ]
+    },
+    "treatment": {
+     "preTokens": 367288,
+     "postTokens": 7324,
+     "summaryChars": 12925,
+     "toolsAfterCompaction": [
+      "Write"
+     ]
+    }
+   },
+   "compactionUSD": {
+    "control": 0.9,
+    "treatment": 0.93
+   },
+   "treatmentTelemetry": {
+    "cacheHot": true,
+    "stubbed": 0,
+    "withheld": 3,
+    "staleReads": 1,
+    "summarizerUsage": {
+     "input_tokens": 36839,
+     "output_tokens": 8778,
+     "cache_read_input_tokens": 27359,
+     "cache_creation_input_tokens": 305581
+    }
+   },
+   "diff": {
+    "C-ds-heap": {
+     "control": "unknown",
+     "treatment": "0.31"
+    },
+    "C-text-diff": {
+     "control": "unknown",
+     "treatment": "23"
+    },
+    "X-detail-D-21": {
+     "control": "unknown",
+     "treatment": "7168 bytes (TAR_BLOCK_SIZE), to match the cold-storage appliance sector size (av"
+    },
+    "X-fn-REQ-402": {
+     "control": "unknown",
+     "treatment": "REQ-402 binds QUAT_NORM_EPSILON to slerpWithNudge"
+    },
+    "O1": {
+     "control": "unknown",
+     "treatment": "5434"
+    },
+    "O2": {
+     "control": "unknown",
+     "treatment": "INC-2271"
+    },
+    "O3": {
+     "control": "unknown",
+     "treatment": "THROTTLEMAN"
+    },
+    "O4": {
+     "control": "unknown",
+     "treatment": "10.42.7.19"
+    },
+    "O5": {
+     "control": "unknown",
+     "treatment": "03:40 UTC (Tuesdays)"
+    },
+    "O6": {
+     "control": "unknown",
+     "treatment": "Priya Raghunathan"
+    },
+    "K1": {
+     "control": "unknown",
+     "treatment": "1:7:7"
+    },
+    "K2": {
+     "control": "unknown",
+     "treatment": "214"
+    },
+    "K3": {
+     "control": "unknown",
+     "treatment": "3.6"
+    },
+    "K4": {
+     "control": "unknown",
+     "treatment": "262"
+    },
+    "K5": {
+     "control": "unknown",
+     "treatment": "Wiraputri Foods"
+    },
+    "K6": {
+     "control": "unknown",
+     "treatment": "17"
+    },
+    "A1": {
+     "control": "unknown",
+     "treatment": "2026-11-02"
+    },
+    "A2": {
+     "control": "unknown",
+     "treatment": "2.7"
+    },
+    "A3": {
+     "control": "unknown",
+     "treatment": "31000"
+    },
+    "A4": {
+     "control": "unknown",
+     "treatment": "04:17:33"
+    },
+    "A5": {
+     "control": "unknown",
+     "treatment": "4.5"
+    },
+    "A6": {
+     "control": "unknown",
+     "treatment": "7.25"
+    }
+   },
+   "answers": {
+    "control": {
+     "C-codec-lzw": "19",
+     "C-auth-jwt": "47",
+     "C-net-ratelimit": "91000",
+     "C-archive-tar": "7168",
+     "C-ds-heap": "unknown",
+     "C-text-diff": "unknown",
+     "F-codec-lzw": "platform/src/codec-lzw.ts",
+     "F-auth-jwt": "platform/src/auth-jwt.ts",
+     "F-net-ratelimit": "platform/src/net-ratelimit.ts",
+     "F-archive-tar": "platform/src/archive-tar.ts",
+     "F-ds-heap": "platform/src/ds-heap.ts",
+     "F-text-diff": "platform/src/text-diff.ts",
+     "X-req-verifyJwtKeyStamp": "REQ-114",
+     "X-dec-sweepRateLimiterBuckets": "D-9",
+     "X-milestone-extractTarMemberStream": "M2",
+     "X-req-lzw-width": "REQ-077",
+     "X-fn-REQ-233": "sweepRateLimiterBuckets",
+     "X-detail-D-21": "unknown",
+     "X-req-REQ-402": "unknown",
+     "X-fn-REQ-402": "unknown",
+     "O1": "unknown",
+     "O2": "unknown",
+     "O3": "unknown",
+     "O4": "unknown",
+     "O5": "unknown",
+     "O6": "unknown",
+     "K1": "unknown",
+     "K2": "unknown",
+     "K3": "unknown",
+     "K4": "unknown",
+     "K5": "unknown",
+     "K6": "unknown",
+     "A1": "unknown",
+     "A2": "unknown",
+     "A3": "unknown",
+     "A4": "unknown",
+     "A5": "unknown",
+     "A6": "unknown"
+    },
+    "treatment": {
+     "C-codec-lzw": "19",
+     "C-auth-jwt": "47",
+     "C-net-ratelimit": "91000",
+     "C-archive-tar": "7168",
+     "C-ds-heap": "0.31",
+     "C-text-diff": "23",
+     "F-codec-lzw": "platform/src/codec-lzw.ts",
+     "F-auth-jwt": "platform/src/auth-jwt.ts",
+     "F-net-ratelimit": "platform/src/net-ratelimit.ts",
+     "F-archive-tar": "platform/src/archive-tar.ts",
+     "F-ds-heap": "platform/src/ds-heap.ts",
+     "F-text-diff": "platform/src/text-diff.ts",
+     "X-req-verifyJwtKeyStamp": "REQ-114",
+     "X-dec-sweepRateLimiterBuckets": "D-9",
+     "X-milestone-extractTarMemberStream": "M2",
+     "X-req-lzw-width": "REQ-077",
+     "X-fn-REQ-233": "sweepRateLimiterBuckets",
+     "X-detail-D-21": "7168 bytes (TAR_BLOCK_SIZE), to match the cold-storage appliance sector size (avoids read-modify-write amplification)",
+     "X-fn-REQ-402": "REQ-402 binds QUAT_NORM_EPSILON to slerpWithNudge",
+     "O1": "5434",
+     "O2": "INC-2271",
+     "O3": "THROTTLEMAN",
+     "O4": "10.42.7.19",
+     "O5": "03:40 UTC (Tuesdays)",
+     "O6": "Priya Raghunathan",
+     "K1": "1:7:7",
+     "K2": "214",
+     "K3": "3.6",
+     "K4": "262",
+     "K5": "Wiraputri Foods",
+     "K6": "17",
+     "A1": "2026-11-02",
+     "A2": "2.7",
+     "A3": "31000",
+     "A4": "04:17:33",
+     "A5": "4.5",
+     "A6": "7.25"
+    }
+   }
+  },
+  "20261007": {
+   "scores": {
+    "code": {
+     "control": "10/12",
+     "treatment": "12/12"
+    },
+    "hybrid": {
+     "control": "5/7",
+     "treatment": "7/7"
+    },
+    "prose": {
+     "control": "0/18",
+     "treatment": "0/18"
+    },
+    "relevant": {
+     "control": "15/19",
+     "treatment": "19/19"
+    },
+    "unrelated": {
+     "control": "0/18",
+     "treatment": "0/18"
+    }
+   },
+   "compaction": {
+    "control": {
+     "preTokens": 370329,
+     "postTokens": 5883,
+     "summaryChars": 7182,
+     "toolsAfterCompaction": [
+      "Write"
+     ]
+    },
+    "treatment": {
+     "preTokens": 370423,
+     "postTokens": 6814,
+     "summaryChars": 10884,
+     "toolsAfterCompaction": [
+      "Write"
+     ]
+    }
+   },
+   "compactionUSD": {
+    "control": 0.9,
+    "treatment": 0.91
+   },
+   "treatmentTelemetry": {
+    "cacheHot": true,
+    "stubbed": 0,
+    "withheld": 3,
+    "staleReads": 1,
+    "summarizerUsage": {
+     "input_tokens": 36821,
+     "output_tokens": 5271,
+     "cache_read_input_tokens": 27359,
+     "cache_creation_input_tokens": 308734
+    }
+   },
+   "diff": {
+    "C-ds-heap": {
+     "control": "unknown",
+     "treatment": "0.31"
+    },
+    "C-text-diff": {
+     "control": "unknown",
+     "treatment": "23"
+    },
+    "X-milestone-extractTarMemberStream": {
+     "control": "unknown",
+     "treatment": "M2"
+    },
+    "X-fn-REQ-402": {
+     "control": "unknown",
+     "treatment": "REQ-402 binds QUAT_NORM_EPSILON to slerpWithNudge (math-quat.ts)"
+    }
+   },
+   "answers": {
+    "control": {
+     "C-codec-lzw": "19",
+     "C-auth-jwt": "47",
+     "C-net-ratelimit": "91000",
+     "C-archive-tar": "7168",
+     "C-ds-heap": "unknown",
+     "C-text-diff": "unknown",
+     "F-codec-lzw": "platform/src/codec-lzw.ts",
+     "F-auth-jwt": "platform/src/auth-jwt.ts",
+     "F-net-ratelimit": "platform/src/net-ratelimit.ts",
+     "F-archive-tar": "platform/src/archive-tar.ts",
+     "F-ds-heap": "platform/src/ds-heap.ts",
+     "F-text-diff": "platform/src/text-diff.ts",
+     "X-req-verifyJwtKeyStamp": "REQ-114",
+     "X-dec-sweepRateLimiterBuckets": "D-9",
+     "X-milestone-extractTarMemberStream": "unknown",
+     "X-req-lzw-width": "REQ-077",
+     "X-fn-REQ-233": "sweepRateLimiterBuckets",
+     "X-detail-D-21": "TAR_BLOCK_SIZE is deliberately 7168 bytes, for the cold-storage appliance",
+     "X-fn-REQ-402": "unknown",
+     "O1": "unknown",
+     "O2": "unknown",
+     "O3": "unknown",
+     "O4": "unknown",
+     "O5": "unknown",
+     "O6": "unknown",
+     "K1": "unknown",
+     "K2": "unknown",
+     "K3": "unknown",
+     "K4": "unknown",
+     "K5": "unknown",
+     "K6": "unknown",
+     "A1": "unknown",
+     "A2": "unknown",
+     "A3": "unknown",
+     "A4": "unknown",
+     "A5": "unknown",
+     "A6": "unknown"
+    },
+    "treatment": {
+     "C-codec-lzw": "19",
+     "C-auth-jwt": "47",
+     "C-net-ratelimit": "91000",
+     "C-archive-tar": "7168",
+     "C-ds-heap": "0.31",
+     "C-text-diff": "23",
+     "F-codec-lzw": "platform/src/codec-lzw.ts",
+     "F-auth-jwt": "platform/src/auth-jwt.ts",
+     "F-net-ratelimit": "platform/src/net-ratelimit.ts",
+     "F-archive-tar": "platform/src/archive-tar.ts",
+     "F-ds-heap": "platform/src/ds-heap.ts",
+     "F-text-diff": "platform/src/text-diff.ts",
+     "X-req-verifyJwtKeyStamp": "REQ-114",
+     "X-dec-sweepRateLimiterBuckets": "D-9",
+     "X-milestone-extractTarMemberStream": "M2",
+     "X-req-lzw-width": "REQ-077",
+     "X-fn-REQ-233": "sweepRateLimiterBuckets",
+     "X-detail-D-21": "TAR_BLOCK_SIZE is 7168 (non-standard) to match the cold-storage appliance sector size, avoiding read-modify-write amplification",
+     "X-fn-REQ-402": "REQ-402 binds QUAT_NORM_EPSILON to slerpWithNudge (math-quat.ts)",
+     "O1": "unknown",
+     "O2": "unknown",
+     "O3": "unknown",
+     "O4": "unknown",
+     "O5": "unknown",
+     "O6": "unknown",
+     "K1": "unknown",
+     "K2": "unknown",
+     "K3": "unknown",
+     "K4": "unknown",
+     "K5": "unknown",
+     "K6": "unknown",
+     "A1": "unknown",
+     "A2": "unknown",
+     "A3": "unknown",
+     "A4": "unknown",
+     "A5": "unknown",
+     "A6": "unknown"
+    }
+   }
+  }
+ }
+}
